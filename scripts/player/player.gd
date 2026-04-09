@@ -23,6 +23,15 @@ func get_grid_position() -> Vector2i:
 func try_move_direction(direction: Vector2i, is_cell_blocked: Callable) -> bool:
     return grid_movement.try_move(direction, is_cell_blocked)
 
+func is_alive() -> bool:
+    return health.current_health > 0
+
+func take_damage(amount: int) -> int:
+    var applied_damage: int = health.take_damage(amount)
+    if applied_damage > 0:
+        EventBus.actor_damaged.emit(name, applied_damage, health.current_health, health.max_health)
+    return applied_damage
+
 func try_attack(target: Node) -> bool:
     if target == null or not target.has_method("take_damage"):
         return false

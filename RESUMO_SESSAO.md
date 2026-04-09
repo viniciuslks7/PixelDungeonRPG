@@ -42,6 +42,21 @@ Godot localizado em:
 C:\Users\ss1093839\Downloads\Godot_v4.6.2-stable_win64.exe\Godot_v4.6.2-stable_win64_console.exe
 ```
 
+## Atualizacao 2026-04-09 - Turno do inimigo
+
+Foi implementado:
+
+- fase explicita de turno inimigo no `TurnManager`
+- sinais `enemy_turn_started` e `enemy_turn_finished`
+- resposta automatica do inimigo apos acao valida do jogador
+- ataque do inimigo contra o jogador quando estiver adjacente
+- dano real no jogador usando `HealthComponent`
+- validacao headless cobrindo contra-ataque e ausencia de ataque apos morte
+
+Commits locais:
+
+- `58fc099` - `feat(combat): Add dummy enemy core loop`
+
 ## O que ficou pronto
 
 - plano de desenvolvimento consolidado em `PLANO_DE_IMPLEMENTACAO.md`
@@ -85,17 +100,18 @@ Ja existe base para:
 - vida/dano
 - inimigo dummy
 - ataque corpo a corpo contra alvo adjacente
+- contra-ataque basico do inimigo adjacente
 - separacao entre logica de jogo e dados
 
 ## Proximo passo recomendado
 
-Validar no editor do Godot e seguir para o primeiro comportamento inimigo:
+Validar no editor do Godot e seguir para movimentacao simples do inimigo:
 
 1. abrir `scenes/main/main.tscn`
 2. mover o jogador ate ficar adjacente ao `DummyEnemy`
-3. pressionar `Space` duas vezes para matar o inimigo
-4. confirmar que o turno so e consumido em ataque valido
-5. implementar a resposta do inimigo no turno seguinte
+3. pressionar `Space` e confirmar o contra-ataque
+4. pressionar `Space` de novo para matar o inimigo
+5. implementar perseguicao simples do inimigo quando nao estiver adjacente
 
 ## Pendencias tecnicas
 

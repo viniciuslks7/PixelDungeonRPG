@@ -27,12 +27,23 @@ func _run() -> void:
         _expect(not main._try_player_melee_attack(), "Player should not hit an enemy from non-adjacent cells.")
 
         player.set_grid_position(room.enemy_spawn_cell + Vector2i.LEFT)
+        _expect(TurnManager.begin_resolution(), "Turn manager should accept a player action.")
         _expect(main._try_player_melee_attack(), "First adjacent attack should hit enemy.")
+
+        await get_tree().process_frame
+        await get_tree().process_frame
+
         _expect(enemy.health.current_health == 4, "Enemy should have 4 HP after first hit.")
+        _expect(player.health.current_health == 19, "Enemy should counterattack for 1 damage.")
+        _expect(TurnManager.phase == TurnManager.Phase.PLAYER_INPUT, "Turn should return to player input.")
+
+        _expect(TurnManager.begin_resolution(), "Turn manager should accept the second player action.")
         _expect(main._try_player_melee_attack(), "Second adjacent attack should hit enemy.")
 
         await get_tree().process_frame
+        await get_tree().process_frame
         _expect(not is_instance_valid(enemy), "Enemy should be freed after lethal damage.")
+        _expect(player.health.current_health == 19, "Dead enemy should not counterattack.")
 
     main.queue_free()
     await get_tree().process_frame

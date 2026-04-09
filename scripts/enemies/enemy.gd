@@ -26,6 +26,18 @@ func take_damage(amount: int) -> int:
         EventBus.actor_damaged.emit(name, applied_damage, health.current_health, health.max_health)
     return applied_damage
 
+func try_attack(target: Node) -> bool:
+    if target == null or not target.has_method("take_damage"):
+        return false
+
+    var applied_damage: int = target.take_damage(attack_power)
+    if applied_damage <= 0:
+        return false
+
+    EventBus.actor_attacked.emit(name, target.name, applied_damage)
+    EventBus.action_resolved.emit(name, &"attack")
+    return true
+
 func _on_died() -> void:
     EventBus.actor_died.emit(name)
     queue_free()

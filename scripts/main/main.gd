@@ -18,6 +18,7 @@ var _enemy: Node
 
 func _ready() -> void:
     TurnManager.player_turn_started.connect(_on_player_turn_started)
+    TurnManager.enemy_turn_started.connect(_on_enemy_turn_started)
     EventBus.actor_moved.connect(_on_actor_moved)
     EventBus.actor_attacked.connect(_on_actor_attacked)
     EventBus.actor_damaged.connect(_on_actor_damaged)
@@ -109,8 +110,37 @@ func _get_enemy_at_cell(cell: Vector2i) -> Node:
 
     return _enemy
 
+func _is_adjacent(first_cell: Vector2i, second_cell: Vector2i) -> bool:
+    var delta := first_cell - second_cell
+    return absi(delta.x) + absi(delta.y) == 1
+
 func _on_player_turn_started(_turn_number: int) -> void:
     EventBus.player_turn_ready.emit()
+
+func _on_enemy_turn_started(_turn_number: int) -> void:
+    _resolve_enemy_turn.call_deferred()
+
+func _resolve_enemy_turn() -> void:
+    if TurnManager.phase != TurnManager.Phase.ENEMY_TURN:
+        return
+
+    if not is_instance_valid(_enemy) or not _enemy.is_alive():
+        TurnManager.finish_enemy_turn()
+        return
+
+    if not is_instance_valid(_player) or not _player.is_alive():
+        TurnManager.finish_enemy_turn()
+        return
+
+    var enemy_cell: Vector2i = _enemy.get_grid_position()
+    var player_cell: Vector2i = _player.get_grid_position()
+
+    if _is_adjacent(enemy_cell, player_cell):
+        _enemy.try_attack(_player)
+    else:
+        EventBus.action_resolved.emit(_enemy.name, &"wait")
+
+    TurnManager.finish_enemy_turn()
 
 func _on_player_action_animation_finished() -> void:
     TurnManager.resolve_player_action(true)

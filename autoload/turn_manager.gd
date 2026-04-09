@@ -2,6 +2,8 @@ extends Node
 
 signal player_turn_started(turn_number: int)
 signal player_turn_ended(turn_number: int)
+signal enemy_turn_started(turn_number: int)
+signal enemy_turn_finished(turn_number: int)
 signal turn_resolution_started(turn_number: int)
 signal turn_resolution_finished(turn_number: int, consumed_turn: bool)
 signal phase_changed(previous_phase: int, new_phase: int)
@@ -37,8 +39,19 @@ func resolve_player_action(consumed_turn: bool) -> void:
 
     if consumed_turn:
         player_turn_ended.emit(turn_number)
-        turn_number += 1
+        _set_phase(Phase.ENEMY_TURN)
+        enemy_turn_started.emit(turn_number)
+        return
 
+    _set_phase(Phase.PLAYER_INPUT)
+    player_turn_started.emit(turn_number)
+
+func finish_enemy_turn() -> void:
+    if phase != Phase.ENEMY_TURN:
+        return
+
+    enemy_turn_finished.emit(turn_number)
+    turn_number += 1
     _set_phase(Phase.PLAYER_INPUT)
     player_turn_started.emit(turn_number)
 
