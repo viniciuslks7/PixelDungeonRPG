@@ -26,7 +26,15 @@ func _run() -> void:
         _expect(main._is_cell_blocked(room.enemy_spawn_cell), "Enemy cell should block player movement.")
         _expect(not main._try_player_melee_attack(), "Player should not hit an enemy from non-adjacent cells.")
 
-        player.set_grid_position(room.enemy_spawn_cell + Vector2i.LEFT)
+        _expect(TurnManager.begin_resolution(), "Turn manager should accept a movement action.")
+        _expect(player.try_move_direction(Vector2i.DOWN, Callable(main, "_is_cell_blocked")), "Player should move in the test room.")
+
+        await get_tree().create_timer(0.25).timeout
+        _expect(player.get_grid_position() == room.player_spawn_cell + Vector2i.DOWN, "Player should finish the movement action.")
+        _expect(enemy.get_grid_position() == room.enemy_spawn_cell + Vector2i.LEFT, "Enemy should step toward a non-adjacent player.")
+        _expect(TurnManager.phase == TurnManager.Phase.PLAYER_INPUT, "Turn should return after enemy movement.")
+
+        player.set_grid_position(enemy.get_grid_position() + Vector2i.LEFT)
         _expect(TurnManager.begin_resolution(), "Turn manager should accept a player action.")
         _expect(main._try_player_melee_attack(), "First adjacent attack should hit enemy.")
 

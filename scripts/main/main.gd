@@ -76,6 +76,7 @@ func _spawn_enemy() -> void:
     _enemy = ENEMY_SCENE.instantiate()
     add_child(_enemy)
     _enemy.set_grid_position(_current_room.enemy_spawn_cell)
+    _enemy.action_animation_finished.connect(_on_enemy_action_animation_finished)
 
 func _is_cell_blocked(cell: Vector2i) -> bool:
     if _current_room.is_cell_blocked(cell):
@@ -83,6 +84,15 @@ func _is_cell_blocked(cell: Vector2i) -> bool:
 
     var enemy_at_cell: Node = _get_enemy_at_cell(cell)
     return enemy_at_cell != null
+
+func _is_cell_blocked_for_enemy(cell: Vector2i) -> bool:
+    if _current_room.is_cell_blocked(cell):
+        return true
+
+    if is_instance_valid(_player) and _player.get_grid_position() == cell:
+        return true
+
+    return false
 
 func _try_player_melee_attack() -> bool:
     var target: Node = _get_adjacent_attack_target()
@@ -114,6 +124,25 @@ func _is_adjacent(first_cell: Vector2i, second_cell: Vector2i) -> bool:
     var delta := first_cell - second_cell
     return absi(delta.x) + absi(delta.y) == 1
 
+func _get_enemy_step_towards_player(enemy_cell: Vector2i, player_cell: Vector2i) -> Vector2i:
+    var candidates: Array[Vector2i] = []
+    var delta := player_cell - enemy_cell
+
+    if absi(delta.x) >= absi(delta.y):
+        candidates.append(Vector2i(signi(delta.x), 0))
+        candidates.append(Vector2i(0, signi(delta.y)))
+    else:
+        candidates.append(Vector2i(0, signi(delta.y)))
+        candidates.append(Vector2i(signi(delta.x), 0))
+
+    for candidate in candidates:
+        if candidate == Vector2i.ZERO:
+            continue
+        if not _is_cell_blocked_for_enemy(enemy_cell + candidate):
+            return candidate
+
+    return Vector2i.ZERO
+
 func _on_player_turn_started(_turn_number: int) -> void:
     EventBus.player_turn_ready.emit()
 
@@ -137,9 +166,17 @@ func _resolve_enemy_turn() -> void:
 
     if _is_adjacent(enemy_cell, player_cell):
         _enemy.try_attack(_player)
-    else:
-        EventBus.action_resolved.emit(_enemy.name, &"wait")
+        return
 
+    var step := _get_enemy_step_towards_player(enemy_cell, player_cell)
+    if step != Vector2i.ZERO:
+        if _enemy.try_move_direction(step, Callable(self, "_is_cell_blocked_for_enemy")):
+            return
+
+    EventBus.action_resolved.emit(_enemy.name, &"wait")
+    TurnManager.finish_enemy_turn()
+
+func _on_enemy_action_animation_finished() -> void:
     TurnManager.finish_enemy_turn()
 
 func _on_player_action_animation_finished() -> void:

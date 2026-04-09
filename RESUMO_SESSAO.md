@@ -53,9 +53,20 @@ Foi implementado:
 - dano real no jogador usando `HealthComponent`
 - validacao headless cobrindo contra-ataque e ausencia de ataque apos morte
 
+## Atualizacao 2026-04-09 - Perseguicao simples
+
+Foi implementado:
+
+- movimento do inimigo durante a fase de turno inimigo
+- decisao simples para aproximar do jogador em eixo cardinal
+- respeito a paredes, celulas bloqueadas e celula atual do jogador
+- finalizacao do turno inimigo apenas depois da animacao de movimento
+- validacao headless cobrindo movimento do inimigo em direcao ao jogador
+
 Commits locais:
 
 - `58fc099` - `feat(combat): Add dummy enemy core loop`
+- `da1515f` - `feat(turns): Add enemy counterattack phase`
 
 ## O que ficou pronto
 
@@ -101,17 +112,18 @@ Ja existe base para:
 - inimigo dummy
 - ataque corpo a corpo contra alvo adjacente
 - contra-ataque basico do inimigo adjacente
+- perseguicao simples quando o inimigo nao esta adjacente
 - separacao entre logica de jogo e dados
 
 ## Proximo passo recomendado
 
-Validar no editor do Godot e seguir para movimentacao simples do inimigo:
+Validar no editor do Godot e seguir para evoluir o primeiro inimigo:
 
 1. abrir `scenes/main/main.tscn`
-2. mover o jogador ate ficar adjacente ao `DummyEnemy`
-3. pressionar `Space` e confirmar o contra-ataque
-4. pressionar `Space` de novo para matar o inimigo
-5. implementar perseguicao simples do inimigo quando nao estiver adjacente
+2. mover o jogador e confirmar que o inimigo se aproxima no turno dele
+3. ficar adjacente ao `DummyEnemy`
+4. pressionar `Space` e confirmar o contra-ataque
+5. transformar o dummy em `Slime` com dados iniciais em `.tres`
 
 ## Pendencias tecnicas
 

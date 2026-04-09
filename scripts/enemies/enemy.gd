@@ -1,6 +1,8 @@
 class_name Enemy
 extends Node2D
 
+signal action_animation_finished
+
 @export var display_name: StringName = &"Dummy"
 @export var attack_power: int = 1
 
@@ -8,6 +10,7 @@ extends Node2D
 @onready var health := $Health
 
 func _ready() -> void:
+    grid_movement.move_finished.connect(_on_move_finished)
     health.died.connect(_on_died)
 
 func set_grid_position(cell: Vector2i) -> void:
@@ -19,6 +22,9 @@ func get_grid_position() -> Vector2i:
 
 func is_alive() -> bool:
     return health.current_health > 0
+
+func try_move_direction(direction: Vector2i, is_cell_blocked: Callable) -> bool:
+    return grid_movement.try_move(direction, is_cell_blocked)
 
 func take_damage(amount: int) -> int:
     var applied_damage: int = health.take_damage(amount)
@@ -36,7 +42,12 @@ func try_attack(target: Node) -> bool:
 
     EventBus.actor_attacked.emit(name, target.name, applied_damage)
     EventBus.action_resolved.emit(name, &"attack")
+    action_animation_finished.emit()
     return true
+
+func _on_move_finished(_new_cell: Vector2i) -> void:
+    EventBus.action_resolved.emit(name, &"move")
+    action_animation_finished.emit()
 
 func _on_died() -> void:
     EventBus.actor_died.emit(name)
