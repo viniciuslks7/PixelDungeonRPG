@@ -10,6 +10,12 @@ const ENEMY_SCENE := preload("res://scenes/enemies/enemy.tscn")
 const WORLD_ITEM_SCENE := preload("res://scenes/items/world_item.tscn")
 const DUNGEON_CHEST_SCENE := preload("res://scenes/items/dungeon_chest.tscn")
 const DUNGEON_PROP_SCENE := preload("res://scenes/world/dungeon_prop.tscn")
+const COMBAT_CONTROLLER_SCRIPT := preload("res://scripts/main/combat_controller.gd")
+const ENEMY_AI_CONTROLLER_SCRIPT := preload("res://scripts/main/enemy_ai_controller.gd")
+const AUTO_DUNGEON_CONTROLLER_SCRIPT := preload("res://scripts/main/auto_dungeon_controller.gd")
+const LOOT_CONTROLLER_SCRIPT := preload("res://scripts/main/loot_controller.gd")
+const GAME_OVER_SCENE_PATH := "res://scenes/ui/game_over_screen.tscn"
+const FLOATING_NUMBER_SCENE := preload("res://scenes/ui/floating_number.tscn")
 const SLIME_DATA := preload("res://data/monsters/slime.tres")
 const SKELETON_DATA := preload("res://data/monsters/skeleton.tres")
 const BAT_DATA := preload("res://data/monsters/bat.tres")
@@ -57,28 +63,34 @@ const ADJACENT_CELLS: Array[Vector2i] = [
 const DUNGEON_PROP_TYPE_TORCH: int = 0
 const DUNGEON_PROP_TYPE_ALTAR: int = 1
 const DUNGEON_PROP_TYPE_STAIRS: int = 2
+const PLAYER_DAMAGE_SHAKE_DURATION: float = 0.1
+const PLAYER_DAMAGE_SHAKE_OFFSET_MIN: float = 2.0
+const PLAYER_DAMAGE_SHAKE_OFFSET_MAX: float = 3.0
 
 var _current_room: Node
 var _player: Node
 var _enemy: Node
 var _enemies: Array[Node] = []
 var _ground_items: Array[Node] = []
-var _enemy_turn_queue: Array[Node] = []
-var _active_enemy: Node
-var _active_enemy_actions_remaining: int = 0
 var _current_floor_data: Dictionary = {}
-var _auto_dungeon_enabled: bool = false
-var _auto_path: Array[Vector2i] = []
-var _auto_path_index: int = 0
 var _dungeon_chest: DungeonChest
 var _dungeon_props: Array[Node] = []
 var _active_pet_index: int = 0
 var _active_mount_index: int = 0
+var _pending_stairs_check: bool = false
+var _world_root_base_position: Vector2 = Vector2.ZERO
+var _world_root_shake_offset: Vector2 = Vector2.ZERO
+var _world_root_shake_tween: Tween
+var _combat_controller
+var _enemy_ai_controller
+var _auto_dungeon_controller
+var _loot_controller
 
 @onready var _world_root: Node2D = $WorldRoot
 @onready var _game_hud: Node = $GameHUD
 
 func _ready() -> void:
+    _setup_controllers()
     TurnManager.player_turn_started.connect(_on_player_turn_started)
     TurnManager.enemy_turn_started.connect(_on_enemy_turn_started)
     get_viewport().size_changed.connect(_on_viewport_size_changed)
@@ -106,6 +118,7 @@ func _ready() -> void:
     EventBus.mount_changed.connect(_on_mount_changed)
     EventBus.chest_opened.connect(_on_chest_opened)
     EventBus.action_resolved.connect(_on_action_resolved)
+    EventBus.player_died.connect(_on_player_died)
 
     _spawn_room()
     _spawn_player()
@@ -119,8 +132,29 @@ func _ready() -> void:
     TurnManager.start_run()
     EventBus.bootstrap_completed.emit()
 
+func _setup_controllers() -> void:
+    _combat_controller = COMBAT_CONTROLLER_SCRIPT.new()
+    _combat_controller.configure(ADJACENT_CELLS)
+
+    _enemy_ai_controller = ENEMY_AI_CONTROLLER_SCRIPT.new()
+    _auto_dungeon_controller = AUTO_DUNGEON_CONTROLLER_SCRIPT.new()
+
+    _loot_controller = LOOT_CONTROLLER_SCRIPT.new()
+    _loot_controller.configure({
+        "short_sword": SHORT_SWORD_DATA,
+        "wooden_shield": WOODEN_SHIELD_DATA,
+        "long_bow": LONG_BOW_DATA,
+        "apprentice_staff": APPRENTICE_STAFF_DATA,
+        "health_potion": HEALTH_POTION_DATA,
+        "floor_key": FLOOR_KEY_DATA,
+        "leather_helmet": LEATHER_HELMET_DATA,
+        "leather_armor": LEATHER_ARMOR_DATA,
+        "leather_gloves": LEATHER_GLOVES_DATA,
+        "leather_boots": LEATHER_BOOTS_DATA,
+    })
+
 func _unhandled_input(event: InputEvent) -> void:
-    if _auto_dungeon_enabled:
+    if _auto_dungeon_controller.is_enabled():
         return
 
     if _is_swap_pet_event(event):
@@ -134,23 +168,13 @@ func _unhandled_input(event: InputEvent) -> void:
     if TurnManager.phase != TurnManager.Phase.PLAYER_INPUT:
         return
 
-    if _is_attack_event(event):
-        if not TurnManager.begin_resolution():
-            return
-
-        if not _try_player_melee_attack():
-            EventBus.action_resolved.emit(_player.name, &"attack_miss")
-            TurnManager.resolve_player_action(false)
-        return
-
-    var skill_slot: int = _skill_slot_from_event(event)
-    if skill_slot >= 0:
-        if not TurnManager.begin_resolution():
-            return
-
-        var skill_target: Node = _get_adjacent_attack_target()
-        if not _player.try_use_active_skill_slot(skill_slot, skill_target):
-            TurnManager.resolve_player_action(false)
+    if _combat_controller.handle_attack_or_skill_input(
+        event,
+        _player,
+        _enemies,
+        Callable(self, "_is_attack_event"),
+        Callable(self, "_skill_slot_from_event")
+    ):
         return
 
     var direction := _direction_from_event(event)
@@ -164,6 +188,8 @@ func _unhandled_input(event: InputEvent) -> void:
         direction,
         Callable(self, "_is_cell_blocked")
     )
+    if consumed_turn:
+        _pending_stairs_check = true
 
     if not consumed_turn:
         TurnManager.resolve_player_action(false)
@@ -234,34 +260,18 @@ func _apply_floor_data_to_room() -> void:
         _current_room.item_spawn_cells = item_spawn_cells
 
 func _spawn_items() -> void:
-    _ground_items.clear()
     var starter_loot: Array[ItemData] = _get_starter_loot_for_selected_class()
-
-    for index in range(min(_current_room.item_spawn_cells.size(), starter_loot.size())):
-        var world_item := WORLD_ITEM_SCENE.instantiate()
-        world_item.item_data = starter_loot[index]
-        world_item.name = "%s_%d" % [String(world_item.item_data.id), index + 1]
-        _world_root.add_child(world_item)
-        world_item.set_grid_position(_current_room.item_spawn_cells[index], _current_room.cell_size)
-        _ground_items.append(world_item)
+    _loot_controller.spawn_items(_world_root, WORLD_ITEM_SCENE, _current_room, starter_loot, _ground_items)
 
 func _spawn_chest() -> void:
-    if _dungeon_chest != null and is_instance_valid(_dungeon_chest):
-        _dungeon_chest.queue_free()
-
-    var chest_cell: Vector2i = _current_floor_data.get("chest_cell", Vector2i(-1, -1))
-    if chest_cell.x < 0 or chest_cell.y < 0:
-        _dungeon_chest = null
-        return
-
-    _dungeon_chest = DUNGEON_CHEST_SCENE.instantiate() as DungeonChest
-    if _dungeon_chest == null:
-        return
-
-    _world_root.add_child(_dungeon_chest)
-    _dungeon_chest.chest_tier = int(_current_floor_data.get("chest_tier", 1))
-    _dungeon_chest.set_grid_position(chest_cell, _current_room.cell_size)
-    _dungeon_chest.opened.connect(_on_dungeon_chest_opened)
+    _dungeon_chest = _loot_controller.spawn_chest(
+        _world_root,
+        DUNGEON_CHEST_SCENE,
+        _current_floor_data,
+        _current_room,
+        _dungeon_chest,
+        Callable(self, "_on_dungeon_chest_opened")
+    )
 
 func _spawn_dungeon_props() -> void:
     for prop_node in _dungeon_props:
@@ -362,14 +372,27 @@ func _position_world_in_map() -> void:
 
     var map_rect: Rect2 = _get_map_rect()
     if map_rect.size == Vector2.ZERO:
-        _world_root.position = Vector2.ZERO
+        _set_world_root_base_position(Vector2.ZERO)
         return
 
     var room_size_in_pixels := Vector2(
         _current_room.room_size.x * _current_room.cell_size,
         _current_room.room_size.y * _current_room.cell_size
     )
-    _world_root.position = map_rect.position + (map_rect.size - room_size_in_pixels) * 0.5
+    _set_world_root_base_position(map_rect.position + (map_rect.size - room_size_in_pixels) * 0.5)
+
+func _set_world_root_base_position(base_position: Vector2) -> void:
+    _world_root_base_position = base_position
+    _apply_world_root_position()
+
+func _set_world_root_shake_offset(shake_offset: Vector2) -> void:
+    _world_root_shake_offset = shake_offset
+    _apply_world_root_position()
+
+func _apply_world_root_position() -> void:
+    if not is_instance_valid(_world_root):
+        return
+    _world_root.position = _world_root_base_position + _world_root_shake_offset
 
 func _get_map_rect() -> Rect2:
     if is_instance_valid(_game_hud) and _game_hud.has_method("get_map_viewport_rect"):
@@ -393,23 +416,6 @@ func _is_cell_blocked_for_enemy(cell: Vector2i) -> bool:
 
     return _get_enemy_at_cell(cell) != null
 
-func _try_player_melee_attack() -> bool:
-    var target: Node = _get_adjacent_attack_target()
-    if target == null:
-        return false
-
-    return _player.try_attack(target)
-
-func _get_adjacent_attack_target() -> Node:
-    var player_cell: Vector2i = _player.get_grid_position()
-
-    for offset in ADJACENT_CELLS:
-        var target: Node = _get_enemy_at_cell(player_cell + offset)
-        if target != null:
-            return target
-
-    return null
-
 func _get_enemy_at_cell(cell: Vector2i) -> Node:
     for enemy in _get_living_enemies():
         if enemy.get_grid_position() == cell:
@@ -417,37 +423,82 @@ func _get_enemy_at_cell(cell: Vector2i) -> Node:
 
     return null
 
-func _get_item_at_cell(cell: Vector2i) -> Node:
-    for world_item in _ground_items:
-        if is_instance_valid(world_item) and world_item.get_grid_position() == cell:
-            return world_item
-
-    return null
+func _try_player_melee_attack() -> bool:
+    return _combat_controller.try_player_melee_attack(_player, _enemies)
 
 func _collect_ground_item_under_player() -> bool:
+    return _loot_controller.collect_ground_item_under_player(_player, _ground_items, _dungeon_chest)
+
+func _try_transition_floor_under_player() -> bool:
     if not is_instance_valid(_player):
         return false
 
-    if _try_open_chest_under_player():
+    var stairs_cell: Vector2i = _get_stairs_cell_from_floor_data()
+    if stairs_cell.x < 0 or stairs_cell.y < 0:
+        return false
+    if _player.get_grid_position() != stairs_cell:
+        return false
+
+    GameManager.go_to_next_floor()
+    if GameManager.state != GameManager.State.PLAYING:
         return true
 
-    var world_item: Node = _get_item_at_cell(_player.get_grid_position())
-    if world_item == null:
-        return false
-    if not world_item.pickup(_player):
-        return false
-
-    _ground_items.erase(world_item)
+    EventBus.level_up.emit(maxi(GameManager.current_floor, 1))
+    _respawn_floor_from_service()
     return true
 
-func _try_open_chest_under_player() -> bool:
-    if not is_instance_valid(_dungeon_chest):
-        return false
-    if _dungeon_chest.is_open():
-        return false
-    if _dungeon_chest.get_grid_position() != _player.get_grid_position():
-        return false
-    return _dungeon_chest.try_open()
+func _get_stairs_cell_from_floor_data() -> Vector2i:
+    var props_raw: Array = _current_floor_data.get("props", [])
+    for prop_data in props_raw:
+        if prop_data is not Dictionary:
+            continue
+
+        if String(prop_data.get("type", "")) != "stairs":
+            continue
+
+        var cell_variant: Variant = prop_data.get("cell", Vector2i(-1, -1))
+        if cell_variant is Vector2i:
+            return cell_variant
+
+    return Vector2i(-1, -1)
+
+func _respawn_floor_from_service() -> void:
+    _clear_current_floor_entities()
+    _apply_floor_data_to_room()
+    if is_instance_valid(_current_room):
+        _current_room.queue_redraw()
+
+    _spawn_items()
+    _spawn_chest()
+    _spawn_dungeon_props()
+    _spawn_enemies()
+    if is_instance_valid(_player) and is_instance_valid(_current_room):
+        _player.set_grid_position(_current_room.player_spawn_cell)
+
+    _build_auto_path_from_floor_data()
+    _position_world_in_map.call_deferred()
+
+func _clear_current_floor_entities() -> void:
+    for world_item in _ground_items:
+        if is_instance_valid(world_item):
+            world_item.queue_free()
+    _ground_items.clear()
+
+    if is_instance_valid(_dungeon_chest):
+        _dungeon_chest.queue_free()
+    _dungeon_chest = null
+
+    for prop_node in _dungeon_props:
+        if is_instance_valid(prop_node):
+            prop_node.queue_free()
+    _dungeon_props.clear()
+
+    for enemy in _enemies:
+        if is_instance_valid(enemy):
+            enemy.queue_free()
+    _enemies.clear()
+    _enemy = null
+    _enemy_ai_controller.clear_state()
 
 func _get_living_enemies() -> Array[Node]:
     var living_enemies: Array[Node] = []
@@ -458,134 +509,37 @@ func _get_living_enemies() -> Array[Node]:
 
     return living_enemies
 
-func _is_adjacent(first_cell: Vector2i, second_cell: Vector2i) -> bool:
-    var delta := first_cell - second_cell
-    return absi(delta.x) + absi(delta.y) == 1
-
-func _get_enemy_step_towards_player(enemy_cell: Vector2i, player_cell: Vector2i) -> Vector2i:
-    var candidates: Array[Vector2i] = []
-    var delta := player_cell - enemy_cell
-
-    if absi(delta.x) >= absi(delta.y):
-        candidates.append(Vector2i(signi(delta.x), 0))
-        candidates.append(Vector2i(0, signi(delta.y)))
-    else:
-        candidates.append(Vector2i(0, signi(delta.y)))
-        candidates.append(Vector2i(signi(delta.x), 0))
-
-    for candidate in candidates:
-        if candidate == Vector2i.ZERO:
-            continue
-        if not _is_cell_blocked_for_enemy(enemy_cell + candidate):
-            return candidate
-
-    return Vector2i.ZERO
-
 func _on_player_turn_started(_turn_number: int) -> void:
     if is_instance_valid(_player) and _player.has_method("on_new_player_turn"):
         _player.on_new_player_turn()
     EventBus.player_turn_ready.emit()
-    if _auto_dungeon_enabled:
+    if _auto_dungeon_controller.is_enabled():
         _run_auto_player_action.call_deferred()
 
 func _on_enemy_turn_started(_turn_number: int) -> void:
-    _enemy_turn_queue = _get_living_enemies()
-    _active_enemy = null
-    _active_enemy_actions_remaining = 0
-    _process_next_enemy_turn.call_deferred()
+    _enemy_ai_controller.begin_enemy_turn(_get_living_enemies(), Callable(self, "_process_next_enemy_turn"))
 
 func _process_next_enemy_turn() -> void:
-    if TurnManager.phase != TurnManager.Phase.ENEMY_TURN:
-        return
-
-    if not is_instance_valid(_player) or not _player.is_alive():
-        TurnManager.finish_enemy_turn()
-        return
-
-    while not _enemy_turn_queue.is_empty():
-        var next_enemy: Node = _enemy_turn_queue.pop_front()
-        if not is_instance_valid(next_enemy) or not next_enemy.is_alive():
-            continue
-
-        _active_enemy = next_enemy
-        _active_enemy_actions_remaining = _get_enemy_actions_per_turn(next_enemy)
-        _resolve_single_enemy_turn(next_enemy)
-        return
-
-    _active_enemy = null
-    _active_enemy_actions_remaining = 0
-    TurnManager.finish_enemy_turn()
-
-func _resolve_single_enemy_turn(enemy: Node) -> void:
-    if not is_instance_valid(enemy) or not enemy.is_alive():
-        _process_next_enemy_turn.call_deferred()
-        return
-
-    if not is_instance_valid(_player) or not _player.is_alive():
-        TurnManager.finish_enemy_turn()
-        return
-
-    var enemy_cell: Vector2i = enemy.get_grid_position()
-    var player_cell: Vector2i = _player.get_grid_position()
-
-    if _is_adjacent(enemy_cell, player_cell):
-        _active_enemy_actions_remaining = 0
-        enemy.try_attack(_player)
-        return
-
-    var moved: bool = false
-    if _active_enemy_actions_remaining > 0:
-        var step := _get_enemy_step_for_behavior(enemy, enemy_cell, player_cell)
-        if step != Vector2i.ZERO and enemy.try_move_direction(step, Callable(self, "_is_cell_blocked_for_enemy")):
-            _active_enemy_actions_remaining -= 1
-            moved = true
-
-    if moved:
-        return
-
-    EventBus.action_resolved.emit(enemy.display_name, &"wait")
-    _advance_enemy_turn_queue()
+    _enemy_ai_controller.process_next_enemy_turn(
+        _player,
+        Callable(self, "_is_cell_blocked_for_enemy"),
+        Callable(self, "_process_next_enemy_turn")
+    )
 
 func _on_enemy_action_animation_finished() -> void:
-    if is_instance_valid(_active_enemy) and _active_enemy.is_alive() and _active_enemy_actions_remaining > 0:
-        _resolve_single_enemy_turn(_active_enemy)
-        return
-
-    _advance_enemy_turn_queue()
-
-func _advance_enemy_turn_queue() -> void:
-    _active_enemy = null
-    _active_enemy_actions_remaining = 0
-    _process_next_enemy_turn.call_deferred()
-
-func _get_enemy_step_for_behavior(enemy: Node, enemy_cell: Vector2i, player_cell: Vector2i) -> Vector2i:
-    if enemy == null or enemy.monster_data == null:
-        return _get_enemy_step_towards_player(enemy_cell, player_cell)
-
-    var distance_to_player := _get_manhattan_distance(enemy_cell, player_cell)
-
-    match enemy.monster_data.behavior:
-        MonsterData.BehaviorType.PASSIVE:
-            return Vector2i.ZERO
-        MonsterData.BehaviorType.SKIRMISHER:
-            if distance_to_player > 2:
-                return _get_enemy_step_towards_player(enemy_cell, player_cell)
-            return Vector2i.ZERO
-        _:
-            return _get_enemy_step_towards_player(enemy_cell, player_cell)
-
-func _get_enemy_actions_per_turn(enemy: Node) -> int:
-    if enemy == null or enemy.monster_data == null:
-        return 1
-
-    return 2 if enemy.monster_data.speed >= 4 else 1
-
-func _get_manhattan_distance(from_cell: Vector2i, to_cell: Vector2i) -> int:
-    var delta := to_cell - from_cell
-    return absi(delta.x) + absi(delta.y)
+    _enemy_ai_controller.on_enemy_action_animation_finished(
+        _player,
+        Callable(self, "_is_cell_blocked_for_enemy"),
+        Callable(self, "_process_next_enemy_turn")
+    )
 
 func _on_player_action_animation_finished() -> void:
+    var moved_this_action: bool = _pending_stairs_check
+    _pending_stairs_check = false
     _collect_ground_item_under_player()
+    if moved_this_action and _try_transition_floor_under_player():
+        if GameManager.state != GameManager.State.PLAYING:
+            return
     TurnManager.resolve_player_action(true)
 
 func _on_actor_moved(actor_name: String, from_cell: Vector2i, to_cell: Vector2i) -> void:
@@ -595,7 +549,82 @@ func _on_actor_attacked(attacker_name: String, target_name: String, damage: int)
     print("%s atacou %s causando %d de dano" % [attacker_name, target_name, damage])
 
 func _on_actor_damaged(actor_name: String, amount: int, current_health: int, max_health: int) -> void:
+    if _is_player_actor_name(actor_name):
+        _apply_player_damage_screen_shake()
+    _spawn_floating_damage_number(actor_name, amount, false)
     print("%s recebeu %d de dano (%d/%d)" % [actor_name, amount, current_health, max_health])
+
+func _is_player_actor_name(actor_name: String) -> bool:
+    if not is_instance_valid(_player):
+        return false
+    return String(_player.display_name) == actor_name or String(_player.name) == actor_name
+
+func _apply_player_damage_screen_shake() -> void:
+    if not is_instance_valid(_world_root):
+        return
+
+    if is_instance_valid(_world_root_shake_tween):
+        _world_root_shake_tween.kill()
+
+    var shake_x: float = randf_range(PLAYER_DAMAGE_SHAKE_OFFSET_MIN, PLAYER_DAMAGE_SHAKE_OFFSET_MAX)
+    var shake_y: float = randf_range(PLAYER_DAMAGE_SHAKE_OFFSET_MIN, PLAYER_DAMAGE_SHAKE_OFFSET_MAX)
+    if randf() < 0.5:
+        shake_x *= -1.0
+    if randf() < 0.5:
+        shake_y *= -1.0
+
+    _set_world_root_shake_offset(Vector2(shake_x, shake_y))
+    _world_root_shake_tween = create_tween()
+    _world_root_shake_tween.tween_method(
+        Callable(self, "_set_world_root_shake_offset"),
+        _world_root_shake_offset,
+        Vector2.ZERO,
+        PLAYER_DAMAGE_SHAKE_DURATION
+    ).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+    _world_root_shake_tween.finished.connect(_on_world_root_shake_finished)
+
+func _on_world_root_shake_finished() -> void:
+    _set_world_root_shake_offset(Vector2.ZERO)
+    _world_root_shake_tween = null
+
+func _spawn_floating_damage_number(actor_name: String, amount: int, is_critical: bool) -> void:
+    if amount <= 0:
+        return
+
+    var actor_node: Node2D = _find_actor_node_by_name(actor_name)
+    if not is_instance_valid(actor_node):
+        return
+
+    var floating_number: Node = FLOATING_NUMBER_SCENE.instantiate()
+    if floating_number == null:
+        return
+
+    add_child(floating_number)
+
+    var cell_size: int = 32
+    if is_instance_valid(_current_room):
+        cell_size = int(_current_room.cell_size)
+
+    var popup_anchor: Vector2 = actor_node.global_position + Vector2(float(cell_size) * 0.5 - 32.0, -20.0)
+    if floating_number is Control:
+        var floating_control := floating_number as Control
+        floating_control.global_position = popup_anchor
+
+    if floating_number.has_method("setup"):
+        floating_number.call("setup", amount, is_critical)
+
+func _find_actor_node_by_name(actor_name: String) -> Node2D:
+    if is_instance_valid(_player):
+        if String(_player.display_name) == actor_name or String(_player.name) == actor_name:
+            return _player as Node2D
+
+    for enemy in _enemies:
+        if not is_instance_valid(enemy):
+            continue
+        if String(enemy.display_name) == actor_name or String(enemy.name) == actor_name:
+            return enemy as Node2D
+
+    return null
 
 func _on_actor_died(actor_name: String) -> void:
     print("%s morreu" % actor_name)
@@ -659,6 +688,15 @@ func _on_chest_opened(actor_name: String, floor_level: int, chest_tier: int, ite
 
 func _on_action_resolved(actor_name: String, action_name: StringName) -> void:
     print("%s executou a acao %s" % [actor_name, action_name])
+
+func _on_player_died() -> void:
+    _auto_dungeon_controller.clear_state()
+    GameManager.end_run()
+    var scene_manager: Node = get_node_or_null("/root/SceneManager")
+    if scene_manager != null and scene_manager.has_method("change_scene"):
+        scene_manager.call("change_scene", GAME_OVER_SCENE_PATH)
+        return
+    get_tree().change_scene_to_file(GAME_OVER_SCENE_PATH)
 
 func _direction_from_event(event: InputEvent) -> Vector2i:
     if event is not InputEventKey:
@@ -736,99 +774,22 @@ func _skill_slot_from_event(event: InputEvent) -> int:
             return -1
 
 func _on_dungeon_requested() -> void:
-    _build_auto_path_from_floor_data()
-    _auto_dungeon_enabled = not _auto_path.is_empty()
-    if _auto_dungeon_enabled and TurnManager.phase == TurnManager.Phase.PLAYER_INPUT:
+    var auto_enabled: bool = _auto_dungeon_controller.on_dungeon_requested(_current_floor_data)
+    if auto_enabled and TurnManager.phase == TurnManager.Phase.PLAYER_INPUT:
         _run_auto_player_action.call_deferred()
 
 func _build_auto_path_from_floor_data() -> void:
-    _auto_path.clear()
-    _auto_path_index = 0
-    var raw_path: Array = _current_floor_data.get("path", [])
-    for cell in raw_path:
-        if cell is Vector2i:
-            _auto_path.append(cell)
+    _auto_dungeon_controller.refresh_path_from_floor_data(_current_floor_data)
 
 func _on_dungeon_chest_opened(chest: DungeonChest) -> void:
-    if not is_instance_valid(_player) or chest == null:
-        return
-
-    var chest_tier: int = chest.chest_tier
-    var rewarded_item: ItemData = _roll_chest_loot(chest_tier)
-    if rewarded_item == null:
-        return
-
-    if not _player.add_item(rewarded_item, 1):
-        return
-
-    EventBus.chest_opened.emit(String(_player.display_name), maxi(GameManager.current_floor, 1), chest_tier, String(rewarded_item.display_name))
-
-func _roll_chest_loot(chest_tier: int) -> ItemData:
-    var class_id: StringName = GameManager.selected_class_id
-    var pool: Array[ItemData] = []
-
-    match class_id:
-        &"archer":
-            pool = [LONG_BOW_DATA, HEALTH_POTION_DATA]
-        &"mage":
-            pool = [APPRENTICE_STAFF_DATA, HEALTH_POTION_DATA]
-        _:
-            pool = [SHORT_SWORD_DATA, WOODEN_SHIELD_DATA, HEALTH_POTION_DATA]
-
-    pool.append(LEATHER_GLOVES_DATA)
-    pool.append(LEATHER_BOOTS_DATA)
-    if chest_tier >= 2:
-        pool.append(LEATHER_HELMET_DATA)
-        pool.append(LEATHER_ARMOR_DATA)
-    if chest_tier >= 3:
-        pool.append(FLOOR_KEY_DATA)
-
-    var index: int = int((GameManager.current_floor + chest_tier) % pool.size())
-    return pool[index]
+    _loot_controller.on_dungeon_chest_opened(_player, chest)
 
 func _run_auto_player_action() -> void:
-    if not _auto_dungeon_enabled:
-        return
-    if TurnManager.phase != TurnManager.Phase.PLAYER_INPUT:
-        return
-    if not is_instance_valid(_player) or not _player.is_alive():
-        return
-    if not TurnManager.begin_resolution():
-        return
-
-    var adjacent_target: Node = _get_adjacent_attack_target()
-    if adjacent_target != null:
-        if _player.try_use_active_skill_slot(0, adjacent_target):
-            return
-        if _player.try_attack(adjacent_target):
-            return
-        TurnManager.resolve_player_action(false)
-        return
-
-    var direction: Vector2i = _get_next_auto_direction()
-    if direction == Vector2i.ZERO:
-        _auto_dungeon_enabled = false
-        TurnManager.resolve_player_action(false)
-        return
-
-    var moved: bool = _player.try_move_direction(direction, Callable(self, "_is_cell_blocked"))
-    if not moved:
-        TurnManager.resolve_player_action(false)
-
-func _get_next_auto_direction() -> Vector2i:
-    var player_cell: Vector2i = _player.get_grid_position()
-
-    while _auto_path_index < _auto_path.size() and _auto_path[_auto_path_index] == player_cell:
-        _auto_path_index += 1
-
-    if _auto_path_index >= _auto_path.size():
-        return Vector2i.ZERO
-
-    var next_cell: Vector2i = _auto_path[_auto_path_index]
-    var delta: Vector2i = next_cell - player_cell
-    if delta == Vector2i.ZERO:
-        return Vector2i.ZERO
-
-    if absi(delta.x) >= absi(delta.y):
-        return Vector2i(signi(delta.x), 0)
-    return Vector2i(0, signi(delta.y))
+    var moved: bool = _auto_dungeon_controller.run_auto_player_action(
+        _player,
+        _enemies,
+        _combat_controller,
+        Callable(self, "_is_cell_blocked")
+    )
+    if moved:
+        _pending_stairs_check = true

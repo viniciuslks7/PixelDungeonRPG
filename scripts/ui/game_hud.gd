@@ -347,6 +347,7 @@ func _open_mount_popup() -> void:
 
 func _open_popup(title: String, body: String, hint: String, mode: PopupMode) -> void:
     _popup_title.text = title
+    _popup_body.bbcode_enabled = true
     _popup_body.text = body
     _popup_hint.text = hint
     _popup_mode = mode
