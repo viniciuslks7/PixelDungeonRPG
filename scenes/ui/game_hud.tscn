@@ -439,5 +439,5 @@ expand_icon = true
 [node name="Hint" type="Label" parent="Root/BottomBar/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "WASD/Setas: mover | Espaco: atacar | 1-4: habilidades | P/M: trocar pet/montaria | Dungeon: auto percurso"
+text = "Clique em Dungeon para iniciar auto-batalha | Movimento e combate sao automaticos"
 horizontal_alignment = 1

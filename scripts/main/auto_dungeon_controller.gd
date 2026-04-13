@@ -33,7 +33,11 @@ func run_auto_player_action(player: Node, enemies: Array[Node], combat_controlle
 
     var adjacent_target: Node = combat_controller.get_adjacent_attack_target(player, enemies)
     if adjacent_target != null:
-        if player.try_use_active_skill_slot(0, adjacent_target):
+        if player.has_method("try_pet_attack"):
+            player.try_pet_attack(adjacent_target)
+            
+        var skill_slot: int = _find_first_available_skill_slot(player)
+        if skill_slot >= 0 and player.try_use_active_skill_slot(skill_slot, adjacent_target):
             return false
         if player.try_attack(adjacent_target):
             return false
@@ -50,6 +54,53 @@ func run_auto_player_action(player: Node, enemies: Array[Node], combat_controlle
     if not moved:
         TurnManager.resolve_player_action(false)
     return moved
+
+func _find_first_available_skill_slot(player: Node) -> int:
+    if not ("active_skills" in player):
+        return -1
+
+    var available_mana: int = _get_player_available_mana(player)
+    var skills_variant: Variant = player.active_skills
+    if typeof(skills_variant) != TYPE_ARRAY:
+        return -1
+
+    var equipped_skills: Array = skills_variant as Array
+    for slot_index in range(equipped_skills.size()):
+        var skill_data: SkillData = equipped_skills[slot_index] as SkillData
+        if skill_data == null or not skill_data.is_active():
+            continue
+        if _get_player_skill_cooldown(player, skill_data.id) > 0:
+            continue
+        if available_mana < skill_data.mana_cost:
+            continue
+        return slot_index
+    return -1
+
+func _get_player_skill_cooldown(player: Node, skill_id: StringName) -> int:
+    if player.has_method("_get_skill_cooldown"):
+        return int(player.call("_get_skill_cooldown", skill_id))
+
+    if "_skill_cooldowns" in player:
+        var cooldowns: Dictionary = player._skill_cooldowns
+        return int(cooldowns.get(skill_id, 0))
+
+    return 0
+
+func _get_player_available_mana(player: Node) -> int:
+    if "current_mana" in player:
+        return maxi(int(player.current_mana), 0)
+
+    if player.has_method("get_current_mana"):
+        return maxi(int(player.call("get_current_mana")), 0)
+
+    if "mana" in player:
+        return maxi(int(player.mana), 0)
+
+    if "core_attributes" in player:
+        var attributes: Dictionary = player.core_attributes
+        return maxi(int(attributes.get(&"mana_max", attributes.get("mana_max", 0))), 0)
+
+    return 0
 
 func _build_path(current_floor_data: Dictionary) -> void:
     _path.clear()

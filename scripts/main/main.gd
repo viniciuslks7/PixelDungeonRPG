@@ -15,6 +15,7 @@ const ENEMY_AI_CONTROLLER_SCRIPT := preload("res://scripts/main/enemy_ai_control
 const AUTO_DUNGEON_CONTROLLER_SCRIPT := preload("res://scripts/main/auto_dungeon_controller.gd")
 const LOOT_CONTROLLER_SCRIPT := preload("res://scripts/main/loot_controller.gd")
 const GAME_OVER_SCENE_PATH := "res://scenes/ui/game_over_screen.tscn"
+const INVENTORY_SCREEN_SCENE := preload("res://scenes/ui/inventory_screen.tscn")
 const FLOATING_NUMBER_SCENE := preload("res://scenes/ui/floating_number.tscn")
 const SLIME_DATA := preload("res://data/monsters/slime.tres")
 const SKELETON_DATA := preload("res://data/monsters/skeleton.tres")
@@ -85,20 +86,25 @@ var _combat_controller
 var _enemy_ai_controller
 var _auto_dungeon_controller
 var _loot_controller
+var _inventory_screen: Node
 
 @onready var _world_root: Node2D = $WorldRoot
 @onready var _game_hud: Node = $GameHUD
 
 func _ready() -> void:
     _setup_controllers()
+    
+    _inventory_screen = INVENTORY_SCREEN_SCENE.instantiate()
+    add_child(_inventory_screen)
+    
     TurnManager.player_turn_started.connect(_on_player_turn_started)
     TurnManager.enemy_turn_started.connect(_on_enemy_turn_started)
     get_viewport().size_changed.connect(_on_viewport_size_changed)
     if is_instance_valid(_game_hud):
         if _game_hud.has_signal("dungeon_requested"):
             _game_hud.dungeon_requested.connect(_on_dungeon_requested)
-        if _game_hud.has_signal("inventory_item_requested"):
-            _game_hud.inventory_item_requested.connect(_on_inventory_item_requested)
+        if _game_hud.has_signal("inventory_popup_requested"):
+            _game_hud.inventory_popup_requested.connect(_on_inventory_popup_requested)
         if _game_hud.has_signal("inventory_unequip_requested"):
             _game_hud.inventory_unequip_requested.connect(_on_inventory_unequip_requested)
         if _game_hud.has_signal("pet_cycle_requested"):
@@ -132,6 +138,15 @@ func _ready() -> void:
     TurnManager.start_run()
     EventBus.bootstrap_completed.emit()
 
+func _process(_delta: float) -> void:
+    if _auto_dungeon_controller == null:
+        return
+    if not _auto_dungeon_controller.is_enabled():
+        return
+    if TurnManager.phase != TurnManager.Phase.PLAYER_INPUT:
+        return
+    _run_auto_player_action()
+
 func _setup_controllers() -> void:
     _combat_controller = COMBAT_CONTROLLER_SCRIPT.new()
     _combat_controller.configure(ADJACENT_CELLS)
@@ -152,47 +167,6 @@ func _setup_controllers() -> void:
         "leather_gloves": LEATHER_GLOVES_DATA,
         "leather_boots": LEATHER_BOOTS_DATA,
     })
-
-func _unhandled_input(event: InputEvent) -> void:
-    if _auto_dungeon_controller.is_enabled():
-        return
-
-    if _is_swap_pet_event(event):
-        _cycle_player_pet()
-        return
-
-    if _is_swap_mount_event(event):
-        _cycle_player_mount()
-        return
-
-    if TurnManager.phase != TurnManager.Phase.PLAYER_INPUT:
-        return
-
-    if _combat_controller.handle_attack_or_skill_input(
-        event,
-        _player,
-        _enemies,
-        Callable(self, "_is_attack_event"),
-        Callable(self, "_skill_slot_from_event")
-    ):
-        return
-
-    var direction := _direction_from_event(event)
-    if direction == Vector2i.ZERO:
-        return
-
-    if not TurnManager.begin_resolution():
-        return
-
-    var consumed_turn: bool = _player.try_move_direction(
-        direction,
-        Callable(self, "_is_cell_blocked")
-    )
-    if consumed_turn:
-        _pending_stairs_check = true
-
-    if not consumed_turn:
-        TurnManager.resolve_player_action(false)
 
 func _spawn_room() -> void:
     _current_room = TEST_ROOM_SCENE.instantiate()
@@ -426,10 +400,19 @@ func _get_enemy_at_cell(cell: Vector2i) -> Node:
 func _try_player_melee_attack() -> bool:
     return _combat_controller.try_player_melee_attack(_player, _enemies)
 
+func _is_boss_room_locked() -> bool:
+    if _current_floor_data.get("is_boss_room", false):
+        return not _get_living_enemies().is_empty()
+    return false
+
 func _collect_ground_item_under_player() -> bool:
+    if _is_boss_room_locked():
+        return false
     return _loot_controller.collect_ground_item_under_player(_player, _ground_items, _dungeon_chest)
 
 func _try_transition_floor_under_player() -> bool:
+    if _is_boss_room_locked():
+        return false
     if not is_instance_valid(_player):
         return false
 
@@ -513,8 +496,8 @@ func _on_player_turn_started(_turn_number: int) -> void:
     if is_instance_valid(_player) and _player.has_method("on_new_player_turn"):
         _player.on_new_player_turn()
     EventBus.player_turn_ready.emit()
-    if _auto_dungeon_controller.is_enabled():
-        _run_auto_player_action.call_deferred()
+    if _auto_dungeon_controller.is_enabled() and TurnManager.phase == TurnManager.Phase.PLAYER_INPUT:
+        _run_auto_player_action()
 
 func _on_enemy_turn_started(_turn_number: int) -> void:
     _enemy_ai_controller.begin_enemy_turn(_get_living_enemies(), Callable(self, "_process_next_enemy_turn"))
@@ -536,6 +519,8 @@ func _on_enemy_action_animation_finished() -> void:
 func _on_player_action_animation_finished() -> void:
     var moved_this_action: bool = _pending_stairs_check
     _pending_stairs_check = false
+    if is_instance_valid(_player) and _player.has_method("tick_cooldowns_and_mana"):
+        _player.tick_cooldowns_and_mana()
     _collect_ground_item_under_player()
     if moved_this_action and _try_transition_floor_under_player():
         if GameManager.state != GameManager.State.PLAYING:
@@ -641,6 +626,10 @@ func _on_item_used(actor_name: String, item_name: String, quantity: int) -> void
 func _on_inventory_changed(actor_name: String, item_id: StringName, quantity: int) -> void:
     print("Inventario de %s: %s = %d" % [actor_name, item_id, quantity])
 
+func _on_inventory_popup_requested() -> void:
+    if is_instance_valid(_player) and is_instance_valid(_inventory_screen):
+        _inventory_screen.open(_player)
+
 func _on_inventory_item_requested(item_id: StringName) -> void:
     if not is_instance_valid(_player):
         return
@@ -698,47 +687,6 @@ func _on_player_died() -> void:
         return
     get_tree().change_scene_to_file(GAME_OVER_SCENE_PATH)
 
-func _direction_from_event(event: InputEvent) -> Vector2i:
-    if event is not InputEventKey:
-        return Vector2i.ZERO
-
-    var key_event := event as InputEventKey
-    if not key_event.pressed or key_event.echo:
-        return Vector2i.ZERO
-
-    match key_event.physical_keycode:
-        KEY_W, KEY_UP:
-            return Vector2i.UP
-        KEY_S, KEY_DOWN:
-            return Vector2i.DOWN
-        KEY_A, KEY_LEFT:
-            return Vector2i.LEFT
-        KEY_D, KEY_RIGHT:
-            return Vector2i.RIGHT
-        _:
-            return Vector2i.ZERO
-
-func _is_attack_event(event: InputEvent) -> bool:
-    if event is not InputEventKey:
-        return false
-
-    var key_event := event as InputEventKey
-    return key_event.pressed and not key_event.echo and key_event.physical_keycode == KEY_SPACE
-
-func _is_swap_pet_event(event: InputEvent) -> bool:
-    if event is not InputEventKey:
-        return false
-
-    var key_event := event as InputEventKey
-    return key_event.pressed and not key_event.echo and key_event.physical_keycode == KEY_P
-
-func _is_swap_mount_event(event: InputEvent) -> bool:
-    if event is not InputEventKey:
-        return false
-
-    var key_event := event as InputEventKey
-    return key_event.pressed and not key_event.echo and key_event.physical_keycode == KEY_M
-
 func _cycle_player_pet() -> void:
     if not is_instance_valid(_player) or AVAILABLE_PETS.is_empty():
         return
@@ -753,30 +701,10 @@ func _cycle_player_mount() -> void:
     var mount_data: MountData = AVAILABLE_MOUNTS[_active_mount_index]
     _player.equip_mount(mount_data)
 
-func _skill_slot_from_event(event: InputEvent) -> int:
-    if event is not InputEventKey:
-        return -1
-
-    var key_event := event as InputEventKey
-    if not key_event.pressed or key_event.echo:
-        return -1
-
-    match key_event.physical_keycode:
-        KEY_1:
-            return 0
-        KEY_2:
-            return 1
-        KEY_3:
-            return 2
-        KEY_4:
-            return 3
-        _:
-            return -1
-
 func _on_dungeon_requested() -> void:
     var auto_enabled: bool = _auto_dungeon_controller.on_dungeon_requested(_current_floor_data)
     if auto_enabled and TurnManager.phase == TurnManager.Phase.PLAYER_INPUT:
-        _run_auto_player_action.call_deferred()
+        _run_auto_player_action()
 
 func _build_auto_path_from_floor_data() -> void:
     _auto_dungeon_controller.refresh_path_from_floor_data(_current_floor_data)

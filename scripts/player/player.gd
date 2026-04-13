@@ -59,6 +59,8 @@ const DEFAULT_ATTRIBUTE_VALUE: int = 20
 @export var attack_power: int = 4
 @export var defense_power: int = 1
 var power_general: int = 0
+var current_mana: int = 0
+var pet_attack_cooldown: int = 0
 var core_attributes: Dictionary = {}
 var active_skills: Array[SkillData] = []
 var passive_skills: Array[SkillData] = []
@@ -149,6 +151,7 @@ func _update_from_class_data() -> void:
         passive_skills.clear()
         _skill_cooldowns.clear()
     _recalculate_combat_stats()
+    current_mana = _get_max_mana()
     if is_instance_valid(health):
         health.current_health = health.max_health
         health.health_changed.emit(health.current_health, health.max_health)
@@ -268,12 +271,21 @@ func equip_mount(mount_data: MountData) -> void:
     EventBus.mount_changed.emit(display_name, mount_id)
 
 func on_new_player_turn() -> void:
+    current_mana = clampi(current_mana, 0, _get_max_mana())
+
+func tick_cooldowns_and_mana() -> void:
     var updated_cooldowns: Dictionary = {}
     for skill_id in _skill_cooldowns.keys():
         var remaining_turns: int = maxi(int(_skill_cooldowns[skill_id]) - 1, 0)
         if remaining_turns > 0:
             updated_cooldowns[skill_id] = remaining_turns
     _skill_cooldowns = updated_cooldowns
+
+    var mana_regen: int = _get_mana_regen()
+    current_mana = mini(_get_max_mana(), current_mana + mana_regen)
+    
+    if pet_attack_cooldown > 0:
+        pet_attack_cooldown -= 1
 
 func try_use_active_skill_slot(slot_index: int, target: Node = null) -> bool:
     if slot_index < 0 or slot_index >= active_skills.size():
@@ -283,6 +295,8 @@ func try_use_active_skill_slot(slot_index: int, target: Node = null) -> bool:
     if skill_data == null or not skill_data.is_active():
         return false
     if _get_skill_cooldown(skill_data.id) > 0:
+        return false
+    if current_mana < skill_data.mana_cost:
         return false
 
     if skill_data.requires_enemy_target:
@@ -297,11 +311,34 @@ func try_use_active_skill_slot(slot_index: int, target: Node = null) -> bool:
         var target_name: String = target.display_name if "display_name" in target else target.name
         EventBus.actor_attacked.emit(display_name, target_name, applied_damage)
 
+    current_mana = maxi(current_mana - skill_data.mana_cost, 0)
     _skill_cooldowns[skill_data.id] = maxi(skill_data.cooldown_turns, 0)
     _play_skill_animation()
     EventBus.skill_used.emit(display_name, skill_data.id, String(skill_data.display_name))
     EventBus.action_resolved.emit(display_name, &"skill")
     action_animation_finished.emit()
+    return true
+
+func try_pet_attack(target: Node) -> bool:
+    if target == null or not target.has_method("take_damage"):
+        return false
+    if equipped_pet == null or equipped_pet.attack <= 0:
+        return false
+    if pet_attack_cooldown > 0:
+        return false
+
+    var applied_damage: int = target.take_damage(equipped_pet.attack)
+    if applied_damage <= 0:
+        return false
+
+    var target_name: String = target.display_name if "display_name" in target else target.name
+    EventBus.actor_attacked.emit(String(equipped_pet.display_name), target_name, applied_damage)
+    pet_attack_cooldown = 4
+    
+    if is_instance_valid(_pet_visual):
+        _pet_visual.play_attack_animation(0.08)
+        _animate_position_bob(_pet_visual, _base_pet_position, Vector2(1.5, -0.5), 0.08)
+        
     return true
 
 func try_use_consumable(item_id: StringName) -> bool:
@@ -362,6 +399,17 @@ func _recalculate_combat_stats() -> void:
     var mount_health_bonus: int = 0
     var mount_speed_bonus: int = 0
 
+    var account_hp_bonus: int = 0
+    var account_atk_bonus: int = 0
+    var account_def_bonus: int = 0
+    
+    var game_manager: Node = get_node_or_null("/root/GameManager")
+    if game_manager != null:
+        var upgrades: Dictionary = game_manager.get("account_upgrades")
+        account_hp_bonus = int(upgrades.get("hp_bonus", 0)) * 5
+        account_atk_bonus = int(upgrades.get("atk_bonus", 0)) * 2
+        account_def_bonus = int(upgrades.get("def_bonus", 0)) * 1
+
     for item_data in equipment.get_equipped_items():
         if item_data == null:
             continue
@@ -387,24 +435,25 @@ func _recalculate_combat_stats() -> void:
         mount_speed_bonus = equipped_mount.movement_speed_bonus
 
     core_attributes = _base_attributes.duplicate(true)
-    core_attributes[ATTR_ATTACK] = int(core_attributes.get(ATTR_ATTACK, DEFAULT_ATTRIBUTE_VALUE)) + total_attack_bonus + passive_attack_bonus + pet_attack_bonus + mount_attack_bonus
-    core_attributes[ATTR_DEFENSE] = int(core_attributes.get(ATTR_DEFENSE, DEFAULT_ATTRIBUTE_VALUE)) + total_defense_bonus + passive_defense_bonus + pet_defense_bonus + mount_defense_bonus
-    core_attributes[ATTR_MAX_HEALTH] = int(core_attributes.get(ATTR_MAX_HEALTH, DEFAULT_ATTRIBUTE_VALUE)) + passive_health_bonus + pet_health_bonus + mount_health_bonus
+    core_attributes[ATTR_ATTACK] = int(core_attributes.get(ATTR_ATTACK, DEFAULT_ATTRIBUTE_VALUE)) + total_attack_bonus + passive_attack_bonus + pet_attack_bonus + mount_attack_bonus + account_atk_bonus
+    core_attributes[ATTR_DEFENSE] = int(core_attributes.get(ATTR_DEFENSE, DEFAULT_ATTRIBUTE_VALUE)) + total_defense_bonus + passive_defense_bonus + pet_defense_bonus + mount_defense_bonus + account_def_bonus
+    core_attributes[ATTR_MAX_HEALTH] = int(core_attributes.get(ATTR_MAX_HEALTH, DEFAULT_ATTRIBUTE_VALUE)) + passive_health_bonus + pet_health_bonus + mount_health_bonus + account_hp_bonus
     core_attributes[ATTR_MOVE_SPEED] = int(core_attributes.get(ATTR_MOVE_SPEED, DEFAULT_ATTRIBUTE_VALUE)) + mount_speed_bonus
 
-    attack_power = _base_attack_power + total_attack_bonus + passive_attack_bonus + pet_attack_bonus + mount_attack_bonus
-    defense_power = _base_defense_power + total_defense_bonus + passive_defense_bonus + pet_defense_bonus + mount_defense_bonus
+    attack_power = _base_attack_power + total_attack_bonus + passive_attack_bonus + pet_attack_bonus + mount_attack_bonus + account_atk_bonus
+    defense_power = _base_defense_power + total_defense_bonus + passive_defense_bonus + pet_defense_bonus + mount_defense_bonus + account_def_bonus
 
     if is_instance_valid(health):
         var previous_health: int = health.current_health
         var base_health_limit: int = class_data.base_max_health if class_data != null else 20
-        health.max_health = base_health_limit + passive_health_bonus + pet_health_bonus + mount_health_bonus
+        health.max_health = base_health_limit + passive_health_bonus + pet_health_bonus + mount_health_bonus + account_hp_bonus
         health.current_health = mini(previous_health, health.max_health)
 
     if is_instance_valid(grid_movement):
         var movement_score: int = int(core_attributes.get(ATTR_MOVE_SPEED, DEFAULT_ATTRIBUTE_VALUE))
         grid_movement.move_duration = clampf(0.10 - float(movement_score - 20) * 0.003, 0.04, 0.12)
 
+    current_mana = clampi(current_mana, 0, _get_max_mana())
     power_general = _calculate_power_general(core_attributes)
     EventBus.player_power_changed.emit(power_general)
 
@@ -438,6 +487,18 @@ func _load_skill_resource(skill_id: StringName) -> SkillData:
 
 func _get_skill_cooldown(skill_id: StringName) -> int:
     return int(_skill_cooldowns.get(skill_id, 0))
+
+func get_current_mana() -> int:
+    return current_mana
+
+func _get_max_mana() -> int:
+    return maxi(int(core_attributes.get(ATTR_MAX_MANA, DEFAULT_ATTRIBUTE_VALUE)), 0)
+
+func _get_mana_regen() -> int:
+    var raw_regen: int = maxi(int(core_attributes.get(ATTR_MANA_REGEN, 0)), 0)
+    if raw_regen <= 0:
+        return 0
+    return maxi(int(round(float(raw_regen) * 0.1)), 1)
 
 func _try_auto_equip_item(item_data: ItemData) -> void:
     if item_data == null or not item_data.is_equipment() or class_data == null:
