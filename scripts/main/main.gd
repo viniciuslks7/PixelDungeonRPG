@@ -402,7 +402,9 @@ func _get_map_rect() -> Rect2:
     if is_instance_valid(_game_hud) and _game_hud.has_method("get_map_viewport_rect"):
         var map_rect: Variant = _game_hud.call("get_map_viewport_rect")
         if map_rect is Rect2:
-            return map_rect
+            var resolved_rect: Rect2 = map_rect
+            if resolved_rect.size.x > 1.0 and resolved_rect.size.y > 1.0:
+                return resolved_rect
     return Rect2(Vector2.ZERO, get_viewport_rect().size)
 
 func _is_cell_blocked(cell: Vector2i) -> bool:
