@@ -2,6 +2,60 @@
 
 Data: 2026-04-08
 
+## Atualizacao 2026-04-13 - Conversão Total para Auto-Battler e Gacha Loop (Batches 6, 7 e 8)
+
+Foi consolidado nesta rodada (Orquestração Autônoma Direta e via Copilot):
+
+- **[Batch 6] Idle Combat**:
+  - `main.gd` não rege mais movimentação manual.
+  - `auto_dungeon_controller.gd` dispara auto-ataques e auto-cast de skills usando mana/cooldown ticks passivos em `player.gd`.
+- **[Batch 7] Inventário Gacha e Drop de Itens Únicos**:
+  - `item_data.gd` ganhou `generate_instance()` para injetar UUID, transformando armas em drop Gacha (com cores/multiplicadores baseados na raridade).
+  - Nova cena `inventory_screen.tscn` permite o pause da masmorra para equipar os `Unique Items` nos Slots do Herói.
+- **[Batch 8] Boss Fights & Autonomia dos Pets**:
+  - `dungeon_service.gd` transforma andares 10, 20, 30... em Salas de Chefe (Salão aberto, inimigo Elite com 6x de vida, Baú +2 Tiers).
+  - `main.gd` impede abrir o baú e avançar o mapa na sala de chefe se ele estiver vivo.
+  - O Pet (Companion) foi ativado passivamente (`player.try_pet_attack`), soltando um ataque na frente do herói a cada 4 turnos sem gastar o movimento do player.
+
+## Atualizacao 2026-04-13 - Runtime polish, audio e modularizacao do Main
+
+Foi consolidado nesta rodada:
+
+- transicao de andares por `stairs`:
+  - ao pisar em `stairs`, o jogo chama `GameManager.go_to_next_floor()`;
+  - limpa entidades da sala atual e respawna floor seguinte via `DungeonService`;
+  - reposiciona o player no spawn do novo floor sem quebrar `TurnManager`/`EventBus`;
+- loot de bau agora aleatorio em `_roll_chest_loot()` com `randi() % pool.size()` mantendo escalonamento por tier;
+- tela de vitoria no floor 80:
+  - `GameManager` intercepta `go_to_next_floor()` no limite;
+  - cena/script criados em `scenes/ui/victory_screen.tscn` e `scripts/ui/victory_screen.gd`;
+  - botao para recomecar jornada;
+- feedback de combate:
+  - floating damage numbers em `scenes/ui/floating_number.tscn` + `scripts/ui/floating_number.gd`;
+  - screen shake sutil (2-3px por 0.1s) quando o jogador recebe dano;
+- audio basico:
+  - novo autoload `autoload/audio_manager.gd` registrado em `project.godot`;
+  - SFX procedurais para `attack_hit`, `enemy_hit`, `player_hit`, `item_pickup`, `chest_open`, `level_up`, `game_over`;
+  - conexao dos sons aos sinais do `EventBus`;
+- refatoracao estrutural de `main.gd` para controllers:
+  - `scripts/main/combat_controller.gd`
+  - `scripts/main/enemy_ai_controller.gd`
+  - `scripts/main/auto_dungeon_controller.gd`
+  - `scripts/main/loot_controller.gd`
+  - `Main` passou a orquestrar os controllers sem concentrar a logica direta desses modulos.
+
+Commit consolidado desta entrega:
+
+- `9ac6bf7` - `feat(runtime): modularize main and add combat feedback systems`
+
+Validacao:
+
+- `scripts/tests/run_godot_auto_verify.ps1` permaneceu em `RESULT: PASS`.
+
+Status de pendencia:
+
+- geracao de sprites PixelLab para Arqueiro/Mago ficou bloqueada por indisponibilidade de ferramentas MCP no ambiente.
+
 ## Atualizacao 2026-04-11 - Lote final de arte MVP (orquestrado com sub-agentes)
 
 Foi consolidado nesta rodada:

@@ -2,7 +2,7 @@
 
 ## Visao do produto
 
-Objetivo: criar um roguelike RPG 2D top-down, em pixel art, inspirado no ritmo de exploracao e progressao de `Pixel Dungeon`, mas com espaco para evoluir depois para classes, monstros, itens e pets.
+Objetivo: criar um Casual/Idle RPG 2D top-down, em pixel art, focado em progressão, loot e gerenciamento de build. O jogo e um "Auto Battler", onde o jogador NAO controla o personagem durante o combate. Todo o movimento na dungeon e usos de habilidades (skills) sao 100% automaticos e dependem exclusivamente do *theorycrafting* antes da batalha.
 
 Pitch inicial:
 
@@ -24,28 +24,26 @@ Meta do primeiro marco:
 - Linguagem: `GDScript`
 - Plataforma inicial: `PC`
 - Camera: `top-down`
-- Movimento: `grid-based`
-- Fluxo de jogo: `turn-based`
+- Movimento: `auto-pathing` e combate 100% auto-idle
+- Fluxo de jogo: `combate continuo` resolvendo cooldowns e mana automaticamente
 - Tile size inicial: `32x32`
 - Arte inicial: `placeholders` primeiro, assets finais depois
 - Dados de conteudo: `Resources` no Godot para classes, monstros, itens e pets
 
 Observacao:
 
-- Se a meta continuar sendo "parecido com Pixel Dungeon", o projeto nao deve nascer com movimento livre.
-- O caminho mais seguro e assumir `grid + turnos` desde o primeiro prototipo.
+- O jogo NAO e um roguelike tatico nem um clone de Shattered Pixel Dungeon.
+- Nao existe movimentacao manual (nem cliques para andar, nem WASD). O foco total da interacao do jogador e na Tela de Equipamentos e Composicao da Build.
 
-## Core loop do MVP
+## Core loop
 
-Loop de 30 segundos:
+Loop de progressao:
 
-1. entrar em uma sala
-2. se posicionar no grid
-3. atacar ou evitar inimigos
-4. coletar um item ou recompensa
-5. seguir para a proxima sala ou escada
-
-O MVP so esta aprovado quando esse loop estiver claro, rapido e legivel.
+1. heroi avanca automaticamente pela dungeon
+2. heroi ataca e casta skills sozinho nos inimigos baseados no loadout
+3. heroi coleta loot passivamente ou em baus
+4. jogador decide pausar a progressao/voltar ao acampamento para gerenciar os novos equipamentos na Tela de Inventario
+5. jogador melhora seus atributos e troca de skills/pets para ir mais longe na proxima run
 
 ## Escopo do vertical slice
 
