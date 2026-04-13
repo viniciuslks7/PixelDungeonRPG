@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/dungeon_prop.gd" id="1_prop"]
+
+[node name="DungeonProp" type="Node2D"]
+script = ExtResource("1_prop")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+centered = false

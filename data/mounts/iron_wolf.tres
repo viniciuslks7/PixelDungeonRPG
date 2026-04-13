@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MountData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mount_data.gd" id="1_mount"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/mount_iron_wolf.svg" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/characters/mounts/spr_mount_iron_wolf_idle.svg" id="3_idle"]
+[ext_resource type="Texture2D" path="res://assets/characters/mounts/spr_mount_iron_wolf_run.svg" id="4_run"]
+
+[resource]
+script = ExtResource("1_mount")
+id = &"iron_wolf"
+display_name = &"Lobo de Ferro"
+description = "Montaria de combate para avancar com firmeza na dungeon."
+icon = ExtResource("2_icon")
+idle_sprite = ExtResource("3_idle")
+run_sprite = ExtResource("4_run")
+attack_bonus = 1
+defense_bonus = 1
+health_bonus = 2
+movement_speed_bonus = 1
+mount_role = 3
+unlock_item_id = &""

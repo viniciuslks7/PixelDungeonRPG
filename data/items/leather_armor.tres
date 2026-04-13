@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/item_armor.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"armadura_de_couro"
+display_name = &"Armadura de Couro"
+description = "Armadura leve para reduzir o dano recebido."
+icon = ExtResource("2_icon")
+item_kind = 2
+rarity = 0
+tags = [&"armor", &"chest"]
+stackable = false
+max_stack = 1
+heal_amount = 0
+attack_bonus = 0
+defense_bonus = 2
+grants_pet_id = &""
+equip_slot = 2
+allowed_class_ids = []

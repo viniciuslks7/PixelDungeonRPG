@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PetData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/pet_data.gd" id="1_pet"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/pet_arcane_fairy.svg" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/characters/pets/spr_pet_arcane_fairy_idle.svg" id="3_idle"]
+[ext_resource type="Texture2D" path="res://assets/characters/pets/spr_pet_arcane_fairy_walk.svg" id="4_walk"]
+[ext_resource type="Texture2D" path="res://assets/characters/pets/spr_pet_arcane_fairy_attack.svg" id="5_attack"]
+
+[resource]
+script = ExtResource("1_pet")
+id = &"arcane_fairy"
+display_name = &"Fada Arcana"
+description = "Pet de suporte com barreira magica passiva."
+icon = ExtResource("2_icon")
+idle_sprite = ExtResource("3_idle")
+walk_sprite = ExtResource("4_walk")
+attack_sprite = ExtResource("5_attack")
+pet_role = 3
+unlock_item_id = &""
+passive_bonus_description = "Aumenta ataque magico e defesa."
+tags = [&"support", &"starter"]
+passive_attack_bonus = 1
+passive_defense_bonus = 1
+passive_health_bonus = 2
