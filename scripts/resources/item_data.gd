@@ -28,6 +28,7 @@ enum EquipSlot {
 }
 
 @export var id: StringName
+var instance_id: StringName = &""
 @export var display_name: StringName
 @export_multiline var description: String
 @export var icon: Texture2D
@@ -40,6 +41,33 @@ enum EquipSlot {
 @export_group("Inventory")
 @export var stackable: bool = false
 @export var max_stack: int = 1
+
+func get_rarity_color() -> Color:
+    match rarity:
+        Rarity.COMMON: return Color("a8a8a8") # Gray
+        Rarity.UNCOMMON: return Color("55ff55") # Green
+        Rarity.RARE: return Color("5555ff") # Blue
+        Rarity.EPIC: return Color("aa00aa") # Purple
+        Rarity.LEGENDARY: return Color("ffaa00") # Orange
+    return Color("a8a8a8")
+
+func generate_instance() -> ItemData:
+    var instance: ItemData = self.duplicate(true)
+    instance.instance_id = StringName("%s_%d" % [id, randi()])
+    
+    if is_equipment():
+        instance.stackable = false
+        var multiplier: float = 1.0
+        match rarity:
+            Rarity.UNCOMMON: multiplier = 1.2
+            Rarity.RARE: multiplier = 1.5
+            Rarity.EPIC: multiplier = 2.0
+            Rarity.LEGENDARY: multiplier = 3.0
+            
+        instance.attack_bonus = int(instance.attack_bonus * multiplier) + (randi() % 5 if multiplier > 1.0 else 0)
+        instance.defense_bonus = int(instance.defense_bonus * multiplier) + (randi() % 3 if multiplier > 1.0 else 0)
+    
+    return instance
 
 @export_group("Effects")
 @export var heal_amount: int = 0

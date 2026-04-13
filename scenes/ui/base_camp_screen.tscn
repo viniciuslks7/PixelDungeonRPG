@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://cyp4xy34x32qf"]
+
+[ext_resource type="Script" path="res://scripts/ui/base_camp_screen.gd" id="1_bcd1m"]
+
+[node name="BaseCampScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bcd1m")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.12, 0.15, 1)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/VBox/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Acampamento Base"
+horizontal_alignment = 1
+
+[node name="GoldLabel" type="Label" parent="Panel/VBox/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+text = "Ouro Acumulado: 0"
+horizontal_alignment = 1
+
+[node name="Upgrades" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="HpContainer" type="HBoxContainer" parent="Panel/VBox/Upgrades"]
+layout_mode = 2
+alignment = 1
+
+[node name="BuyHpButton" type="Button" parent="Panel/VBox/Upgrades/HpContainer"]
+custom_minimum_size = Vector2(250, 40)
+layout_mode = 2
+text = "HP+ (Lvl 0) - 50g"
+
+[node name="AtkContainer" type="HBoxContainer" parent="Panel/VBox/Upgrades"]
+layout_mode = 2
+alignment = 1
+
+[node name="BuyAtkButton" type="Button" parent="Panel/VBox/Upgrades/AtkContainer"]
+custom_minimum_size = Vector2(250, 40)
+layout_mode = 2
+text = "ATK+ (Lvl 0) - 100g"
+
+[node name="DefContainer" type="HBoxContainer" parent="Panel/VBox/Upgrades"]
+layout_mode = 2
+alignment = 1
+
+[node name="BuyDefButton" type="Button" parent="Panel/VBox/Upgrades/DefContainer"]
+custom_minimum_size = Vector2(250, 40)
+layout_mode = 2
+text = "DEF+ (Lvl 0) - 100g"
+
+[node name="BackButton" type="Button" parent="Panel/VBox"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Voltar"

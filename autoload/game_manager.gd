@@ -19,8 +19,17 @@ var state: State = State.BOOT
 var current_floor: int = 0
 var selected_class_id: StringName = &"warrior"
 
+var global_gold: int = 0
+var account_upgrades: Dictionary = {
+    "hp_bonus": 0,
+    "atk_bonus": 0,
+    "def_bonus": 0
+}
+const SAVE_PATH := "user://savegame.json"
+
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
+    load_data()
 
 func start_run(start_floor: int = 1) -> void:
     current_floor = start_floor
@@ -41,6 +50,7 @@ func go_to_next_floor() -> void:
 func end_run() -> void:
     state = State.GAME_OVER
     get_tree().paused = false
+    save_data()
     state_changed.emit(state)
     run_ended.emit()
 
@@ -71,3 +81,30 @@ func _show_victory_screen() -> void:
         return
 
     get_tree().change_scene_to_file(VICTORY_SCENE_PATH)
+
+func add_gold(amount: int) -> void:
+    if amount > 0:
+        global_gold += amount
+        save_data()
+
+func save_data() -> void:
+    var data: Dictionary = {
+        "gold": global_gold,
+        "upgrades": account_upgrades
+    }
+    var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+    if file != null:
+        file.store_string(JSON.stringify(data))
+
+func load_data() -> void:
+    if FileAccess.file_exists(SAVE_PATH):
+        var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+        if file != null:
+            var parsed = JSON.parse_string(file.get_as_text())
+            if typeof(parsed) == TYPE_DICTIONARY:
+                global_gold = int(parsed.get("gold", 0))
+                var loaded_upgrades = parsed.get("upgrades", {})
+                if typeof(loaded_upgrades) == TYPE_DICTIONARY:
+                    for key in account_upgrades.keys():
+                        if loaded_upgrades.has(key):
+                            account_upgrades[key] = int(loaded_upgrades[key])

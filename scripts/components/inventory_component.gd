@@ -11,8 +11,8 @@ func add_item(item_data: ItemData, amount: int = 1) -> bool:
     if item_data == null or item_data.id.is_empty() or amount <= 0:
         return false
 
-    var item_id: StringName = item_data.id
-    var current_quantity: int = get_quantity(item_id)
+    var entry_key: StringName = item_data.id if item_data.can_stack() else item_data.instance_id
+    var current_quantity: int = _get_quantity_by_key(entry_key)
     var max_allowed: int = max(item_data.max_stack, 1) if item_data.can_stack() else 1
     var next_quantity: int = mini(current_quantity + amount, max_allowed)
     var applied_amount: int = next_quantity - current_quantity
@@ -20,9 +20,9 @@ func add_item(item_data: ItemData, amount: int = 1) -> bool:
     if applied_amount <= 0:
         return false
 
-    _set_entry(item_data, next_quantity)
+    _set_entry(entry_key, item_data, next_quantity)
     item_added.emit(item_data, applied_amount, next_quantity)
-    inventory_changed.emit(item_id, next_quantity)
+    inventory_changed.emit(entry_key, next_quantity)
     return true
 
 func has_item(item_id: StringName, amount: int = 1) -> bool:
@@ -31,7 +31,10 @@ func has_item(item_id: StringName, amount: int = 1) -> bool:
     return get_quantity(item_id) >= amount
 
 func get_quantity(item_id: StringName) -> int:
-    var entry: Dictionary = _entries.get(item_id, {})
+    return _get_quantity_by_key(item_id)
+
+func _get_quantity_by_key(key: StringName) -> int:
+    var entry: Dictionary = _entries.get(key, {})
     return int(entry.get("quantity", 0))
 
 func get_item_data(item_id: StringName) -> ItemData:
@@ -81,8 +84,8 @@ func get_entries() -> Array[Dictionary]:
         })
     return entries
 
-func _set_entry(item_data: ItemData, quantity: int) -> void:
-    _entries[item_data.id] = {
+func _set_entry(key: StringName, item_data: ItemData, quantity: int) -> void:
+    _entries[key] = {
         "data": item_data,
         "quantity": quantity,
     }

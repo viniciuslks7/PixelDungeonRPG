@@ -5,11 +5,13 @@ const CLASS_IDS: Array[StringName] = [&"warrior", &"archer", &"mage"]
 const CLASS_LABELS: Array[String] = ["Guerreiro", "Arqueiro", "Mago"]
 
 @onready var _play_button: Button = $CenterContainer/Panel/Margin/VBox/PlayButton
+@onready var _camp_button: Button = $CenterContainer/Panel/Margin/VBox/CampButton
 @onready var _quit_button: Button = $CenterContainer/Panel/Margin/VBox/QuitButton
 @onready var _class_selector: OptionButton = $CenterContainer/Panel/Margin/VBox/ClassPicker/ClassSelector
 
 func _ready() -> void:
     _play_button.pressed.connect(_on_play_button_pressed)
+    _camp_button.pressed.connect(_on_camp_button_pressed)
     _quit_button.pressed.connect(_on_quit_button_pressed)
     _setup_class_selector()
     _play_button.grab_focus()
@@ -45,6 +47,9 @@ func _on_play_button_pressed() -> void:
     var error: Error = get_tree().change_scene_to_file(GAME_SCENE_PATH)
     if error != OK:
         push_error("Falha ao iniciar o jogo. Nao foi possivel abrir %s (erro: %d)." % [GAME_SCENE_PATH, error])
+
+func _on_camp_button_pressed() -> void:
+    get_tree().change_scene_to_file("res://scenes/ui/base_camp_screen.tscn")
 
 func _on_quit_button_pressed() -> void:
     get_tree().quit()

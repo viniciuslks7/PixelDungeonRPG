@@ -25,19 +25,49 @@ func _build_floor_data() -> void:
         var stage_block: int = int((floor_level - 1) / 20)
         var multipliers: Dictionary = _calculate_stage_multipliers(floor_level, stage_block)
 
-        _floor_data_by_level[floor_level] = {
-            "floor_level": floor_level,
-            "path": path,
-            "player_spawn_cell": path[0] if not path.is_empty() else Vector2i(2, 2),
-            "enemy_cells": enemy_cells,
-            "props": _build_props_for_variant(variant),
-            "chest_cell": chest_cell,
-            "enemy_health_multiplier": float(multipliers.get("health", 1.0)),
-            "enemy_attack_multiplier": float(multipliers.get("attack", 1.0)),
-            "elite_chance": float(multipliers.get("elite_chance", 0.0)),
-            "chest_tier": 1 + stage_block,
-            "danger_score": int(multipliers.get("danger_score", 100)),
-        }
+        var is_boss_level: bool = (floor_level % 10 == 0)
+        
+        if is_boss_level:
+            var path: Array[Vector2i] = [
+                Vector2i(2, 4), Vector2i(3, 4), Vector2i(4, 4), Vector2i(5, 4),
+                Vector2i(6, 4), Vector2i(7, 4), Vector2i(8, 4), Vector2i(9, 4)
+            ]
+            var enemy_cells: Array[Vector2i] = [Vector2i(7, 4)]
+            var chest_cell: Vector2i = Vector2i(9, 5)
+            var props: Array[Dictionary] = [
+                {"cell": Vector2i(1, 4), "type": "torch"},
+                {"cell": Vector2i(10, 4), "type": "stairs"},
+            ]
+            
+            _floor_data_by_level[floor_level] = {
+                "floor_level": floor_level,
+                "is_boss_room": true,
+                "path": path,
+                "player_spawn_cell": Vector2i(2, 4),
+                "enemy_cells": enemy_cells,
+                "props": props,
+                "chest_cell": chest_cell,
+                "enemy_health_multiplier": float(multipliers.get("health", 1.0)) * 6.0,
+                "enemy_attack_multiplier": float(multipliers.get("attack", 1.0)) * 2.0,
+                "elite_chance": 1.0, 
+                "chest_tier": 1 + stage_block + 2,
+                "danger_score": int(multipliers.get("danger_score", 100)) * 3,
+            }
+        else:
+            _floor_data_by_level[floor_level] = {
+                "floor_level": floor_level,
+                "is_boss_room": false,
+                "path": path,
+                "player_spawn_cell": path[0] if not path.is_empty() else Vector2i(2, 2),
+                "enemy_cells": enemy_cells,
+                "props": _build_props_for_variant(variant),
+                "chest_cell": chest_cell,
+                "enemy_health_multiplier": float(multipliers.get("health", 1.0)),
+                "enemy_attack_multiplier": float(multipliers.get("attack", 1.0)),
+                "elite_chance": float(multipliers.get("elite_chance", 0.0)),
+                "chest_tier": 1 + stage_block,
+                "danger_score": int(multipliers.get("danger_score", 100)),
+            }
 
 func _calculate_stage_multipliers(floor_level: int, stage_block: int) -> Dictionary:
     var stage_index: int = clampi(stage_block, 0, 3)

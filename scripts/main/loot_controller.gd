@@ -96,17 +96,20 @@ func on_dungeon_chest_opened(player: Node, chest: DungeonChest) -> void:
         return
 
     var chest_tier: int = chest.chest_tier
+    
+    var gold_amount: int = chest_tier * (randi() % 50 + 50)
+    GameManager.add_gold(gold_amount)
+    EventBus.item_picked_up.emit(String(player.display_name), "Ouro", gold_amount)
+    
     var rewarded_item: ItemData = roll_chest_loot(chest_tier)
-    if rewarded_item == null:
-        return
-    if not player.add_item(rewarded_item, 1):
-        return
+    if rewarded_item != null:
+        player.add_item(rewarded_item, 1)
 
     EventBus.chest_opened.emit(
         String(player.display_name),
         maxi(GameManager.current_floor, 1),
         chest_tier,
-        String(rewarded_item.display_name)
+        String(rewarded_item.display_name) if rewarded_item else "Gold"
     )
 
 func roll_chest_loot(chest_tier: int) -> ItemData:
@@ -130,7 +133,7 @@ func roll_chest_loot(chest_tier: int) -> ItemData:
         pool.append(_floor_key_data)
 
     var index: int = int(randi() % pool.size())
-    return pool[index]
+    return pool[index].generate_instance()
 
 func get_item_at_cell(ground_items: Array[Node], cell: Vector2i) -> Node:
     for world_item in ground_items:

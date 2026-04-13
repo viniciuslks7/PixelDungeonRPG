@@ -247,38 +247,10 @@ func _open_character_popup() -> void:
     )
     _open_popup("Personagem", body, "Painel de status e equipamentos atuais.", PopupMode.CHARACTER)
 
+signal inventory_popup_requested
+
 func _open_inventory_popup() -> void:
-    if not is_instance_valid(_player):
-        _open_popup("Inventario", "Sem personagem ativo.", "-", PopupMode.INVENTORY)
-        return
-
-    _inventory_shortcuts.clear()
-    var inventory_lines: PackedStringArray = []
-    var entries: Array[Dictionary] = []
-    if "get_inventory_entries" in _player:
-        entries = _player.get_inventory_entries()
-
-    for index in range(entries.size()):
-        var entry: Dictionary = entries[index]
-        var item_data: ItemData = entry.get("data", null) as ItemData
-        if item_data == null:
-            continue
-
-        var quantity: int = int(entry.get("quantity", 0))
-        var tag: String = "[equip]" if item_data.is_equipment() else "[consumivel]"
-        var shortcut_text: String = "-"
-        if _inventory_shortcuts.size() < 9:
-            _inventory_shortcuts.append(item_data.id)
-            shortcut_text = str(_inventory_shortcuts.size())
-
-        inventory_lines.append("%s) %s x%d %s" % [shortcut_text, String(item_data.display_name), quantity, tag])
-
-    if inventory_lines.is_empty():
-        inventory_lines.append("Sem itens na bolsa.")
-
-    var body := "[b]Bolsa:[/b]\n%s" % "\n".join(inventory_lines)
-    var hint := "Teclas 1-9: equipar/usar item | Q: desequipar arma | E: desequipar escudo"
-    _open_popup("Inventario", body, hint, PopupMode.INVENTORY)
+    inventory_popup_requested.emit()
 
 func _open_skills_popup() -> void:
     if not is_instance_valid(_player):
