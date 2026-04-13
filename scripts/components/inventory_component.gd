@@ -11,7 +11,7 @@ func add_item(item_data: ItemData, amount: int = 1) -> bool:
     if item_data == null or item_data.id.is_empty() or amount <= 0:
         return false
 
-    var entry_key: StringName = item_data.id if item_data.can_stack() else item_data.instance_id
+    var entry_key: StringName = _resolve_entry_key(item_data)
     var current_quantity: int = _get_quantity_by_key(entry_key)
     var max_allowed: int = max(item_data.max_stack, 1) if item_data.can_stack() else 1
     var next_quantity: int = mini(current_quantity + amount, max_allowed)
@@ -31,7 +31,17 @@ func has_item(item_id: StringName, amount: int = 1) -> bool:
     return get_quantity(item_id) >= amount
 
 func get_quantity(item_id: StringName) -> int:
-    return _get_quantity_by_key(item_id)
+    var quantity_by_key: int = _get_quantity_by_key(item_id)
+    if quantity_by_key > 0:
+        return quantity_by_key
+
+    var total_quantity: int = 0
+    for key in _entries.keys():
+        var entry: Dictionary = _entries[key]
+        var entry_data: ItemData = entry.get("data", null) as ItemData
+        if entry_data != null and entry_data.id == item_id:
+            total_quantity += int(entry.get("quantity", 0))
+    return total_quantity
 
 func _get_quantity_by_key(key: StringName) -> int:
     var entry: Dictionary = _entries.get(key, {})
@@ -39,7 +49,15 @@ func _get_quantity_by_key(key: StringName) -> int:
 
 func get_item_data(item_id: StringName) -> ItemData:
     var entry: Dictionary = _entries.get(item_id, {})
-    return entry.get("data", null) as ItemData
+    if not entry.is_empty():
+        return entry.get("data", null) as ItemData
+
+    for key in _entries.keys():
+        var fallback_entry: Dictionary = _entries[key]
+        var fallback_data: ItemData = fallback_entry.get("data", null) as ItemData
+        if fallback_data != null and fallback_data.id == item_id:
+            return fallback_data
+    return null
 
 func consume_item(item_id: StringName, amount: int = 1) -> ItemData:
     if amount <= 0:
@@ -89,3 +107,12 @@ func _set_entry(key: StringName, item_data: ItemData, quantity: int) -> void:
         "data": item_data,
         "quantity": quantity,
     }
+
+func _resolve_entry_key(item_data: ItemData) -> StringName:
+    if item_data == null:
+        return &""
+    if item_data.can_stack():
+        return item_data.id
+    if not item_data.instance_id.is_empty():
+        return item_data.instance_id
+    return item_data.id
