@@ -34,7 +34,7 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map"]
-bg_color = Color(0.0117647, 0.0196078, 0.054902, 0.14)
+bg_color = Color(0.0117647, 0.0196078, 0.054902, 0.06)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3

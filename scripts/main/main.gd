@@ -399,13 +399,20 @@ func _apply_world_root_position() -> void:
     _world_root.position = _world_root_base_position + _world_root_shake_offset
 
 func _get_map_rect() -> Rect2:
+    var viewport_rect: Rect2 = get_viewport_rect()
     if is_instance_valid(_game_hud) and _game_hud.has_method("get_map_viewport_rect"):
         var map_rect: Variant = _game_hud.call("get_map_viewport_rect")
         if map_rect is Rect2:
             var resolved_rect: Rect2 = map_rect
-            if resolved_rect.size.x > 1.0 and resolved_rect.size.y > 1.0:
-                return resolved_rect
-    return Rect2(Vector2.ZERO, get_viewport_rect().size)
+            var visible_rect: Rect2 = resolved_rect.intersection(viewport_rect)
+            if visible_rect.size.x >= 64.0 and visible_rect.size.y >= 64.0:
+                return visible_rect
+
+    var fallback_size := Vector2(864.0, 512.0)
+    fallback_size.x = minf(fallback_size.x, viewport_rect.size.x)
+    fallback_size.y = minf(fallback_size.y, viewport_rect.size.y)
+    var fallback_position: Vector2 = viewport_rect.position + (viewport_rect.size - fallback_size) * 0.5
+    return Rect2(fallback_position, fallback_size)
 
 func _is_cell_blocked(cell: Vector2i) -> bool:
     if _current_room.is_cell_blocked(cell):
