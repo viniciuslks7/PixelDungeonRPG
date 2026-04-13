@@ -14,6 +14,7 @@ enum State {
 
 var state: State = State.BOOT
 var current_floor: int = 0
+var selected_class_id: StringName = &"warrior"
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
@@ -49,3 +50,7 @@ func toggle_pause() -> void:
 
     state_changed.emit(state)
 
+func set_selected_class(class_id: StringName) -> void:
+    if class_id.is_empty():
+        return
+    selected_class_id = class_id

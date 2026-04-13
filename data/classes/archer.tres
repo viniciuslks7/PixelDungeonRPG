@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_class_data.gd" id="1_class"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_archer_idle.svg" id="2_idle_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_archer_walk.svg" id="3_walk_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_archer_attack.svg" id="4_attack_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_archer_hit.svg" id="5_hit_sprite"]
+
+[resource]
+script = ExtResource("1_class")
+id = &"archer"
+display_name = &"Arqueiro"
+description = "Um especialista em ataques a distancia, com alta precisao e mobilidade."
+idle_sprite = ExtResource("2_idle_sprite")
+walk_sprite = ExtResource("3_walk_sprite")
+attack_sprite = ExtResource("4_attack_sprite")
+hit_sprite = ExtResource("5_hit_sprite")
+role = 1
+base_max_health = 18
+base_attack = 5
+base_defense = 1
+base_speed = 5
+health_per_level = 3
+attack_per_level = 1
+defense_per_level = 1
+starting_item_ids = []
+active_skill_ids = [&"archer_tiro_preciso", &"archer_rajada_tripla", &"archer_flecha_perfurante", &"archer_passo_recuado"]
+passive_skill_ids = [&"archer_olho_de_aguia", &"archer_cacador_nato"]

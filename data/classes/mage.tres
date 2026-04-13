@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_class_data.gd" id="1_class"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_mage_idle.svg" id="2_idle_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_mage_walk.svg" id="3_walk_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_mage_attack.svg" id="4_attack_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_mage_hit.svg" id="5_hit_sprite"]
+
+[resource]
+script = ExtResource("1_class")
+id = &"mage"
+display_name = &"Mago"
+description = "Um conjurador arcano com alto potencial ofensivo e controle de campo."
+idle_sprite = ExtResource("2_idle_sprite")
+walk_sprite = ExtResource("3_walk_sprite")
+attack_sprite = ExtResource("4_attack_sprite")
+hit_sprite = ExtResource("5_hit_sprite")
+role = 2
+base_max_health = 16
+base_attack = 6
+base_defense = 0
+base_speed = 4
+health_per_level = 3
+attack_per_level = 2
+defense_per_level = 1
+starting_item_ids = []
+active_skill_ids = [&"mage_bola_de_fogo", &"mage_gelo_cortante", &"mage_raio_arcano", &"mage_escudo_arcano"]
+passive_skill_ids = [&"mage_afinidade_arcana", &"mage_sobrecarga_elemental"]

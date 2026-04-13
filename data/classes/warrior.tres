@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CharacterClassData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_class_data.gd" id="1_class"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_warrior_idle.png" id="2_idle_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_warrior_walk.svg" id="3_walk_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_warrior_attack.svg" id="4_attack_sprite"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/spr_player_warrior_hit.svg" id="5_hit_sprite"]
+
+[resource]
+script = ExtResource("1_class")
+id = &"warrior"
+display_name = &"Guerreiro"
+description = "Um bravo lutador que confia em sua forca e resistencia para sobreviver na dungeon."
+idle_sprite = ExtResource("2_idle_sprite")
+walk_sprite = ExtResource("3_walk_sprite")
+attack_sprite = ExtResource("4_attack_sprite")
+hit_sprite = ExtResource("5_hit_sprite")
+role = 0
+base_max_health = 20
+base_attack = 4
+base_defense = 1
+base_speed = 4
+health_per_level = 4
+attack_per_level = 1
+defense_per_level = 1
+starting_item_ids = []
+active_skill_ids = [&"warrior_golpe_brutal", &"warrior_provocacao", &"warrior_escudo_de_ferro", &"warrior_investida"]
+passive_skill_ids = [&"warrior_pele_de_aco", &"warrior_vigor_de_batalha"]

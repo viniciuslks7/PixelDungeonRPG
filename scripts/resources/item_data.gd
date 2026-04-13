@@ -17,6 +17,16 @@ enum Rarity {
     LEGENDARY,
 }
 
+enum EquipSlot {
+    NONE,
+    HELMET,
+    ARMOR,
+    GLOVES,
+    BOOTS,
+    SHIELD,
+    WEAPON,
+}
+
 @export var id: StringName
 @export var display_name: StringName
 @export_multiline var description: String
@@ -37,9 +47,17 @@ enum Rarity {
 @export var defense_bonus: int = 0
 @export var grants_pet_id: StringName
 
+@export_group("Equipment")
+@export var equip_slot: EquipSlot = EquipSlot.NONE
+@export var allowed_class_ids: Array[StringName] = []
+
 func can_stack() -> bool:
     return stackable and max_stack > 1
 
 func is_equipment() -> bool:
     return item_kind == ItemKind.WEAPON or item_kind == ItemKind.ARMOR
 
+func is_class_allowed(class_id: StringName) -> bool:
+    if allowed_class_ids.is_empty():
+        return true
+    return class_id in allowed_class_ids

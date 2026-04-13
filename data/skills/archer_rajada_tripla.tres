@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/skills/skill_archer_rajada_tripla.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = &"archer_rajada_tripla"
+display_name = &"Rajada Tripla"
+description = "Sequencia rapida de flechas no mesmo alvo."
+icon = ExtResource("2_icon")
+skill_type = 0
+target_type = 2
+damage_type = 0
+cooldown_turns = 2
+mana_cost = 0
+power_multiplier = 1.15
+flat_damage_bonus = 2
+requires_enemy_target = true
+

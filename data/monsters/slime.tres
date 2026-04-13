@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MonsterData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/monster_data.gd" id="1_monster"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemies/spr_enemy_slime_idle.png" id="2_idle_sprite"]
+
+[resource]
+script = ExtResource("1_monster")
+id = &"slime"
+display_name = &"Slime"
+description = "Um slime verde viscoso e lento."
+idle_sprite = ExtResource("2_idle_sprite")
+level = 1
+max_health = 8
+attack = 2
+defense = 0
+speed = 2
+melee_range = 1
+behavior = 0
+can_open_doors = false
+tags = []
+xp_reward = 5
+loot_table_id = &""

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/skill_data.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/skills/skill_mage_afinidade_arcana.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+id = &"mage_afinidade_arcana"
+display_name = &"Afinidade Arcana"
+description = "Passiva: melhora a sintonia magica e a eficiencia dos feitiços."
+icon = ExtResource("2_icon")
+skill_type = 1
+target_type = 0
+damage_type = 3
+cooldown_turns = 0
+mana_cost = 0
+power_multiplier = 0.0
+flat_damage_bonus = 0
+requires_enemy_target = false
+passive_attack_bonus = 1
+passive_health_bonus = 2
+

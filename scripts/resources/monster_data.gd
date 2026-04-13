@@ -14,6 +14,9 @@ enum BehaviorType {
 @export var display_name: StringName
 @export_multiline var description: String
 
+@export_group("Visual")
+@export var idle_sprite: Texture2D
+
 @export_group("Combat")
 @export var level: int = 1
 @export var max_health: int = 10
@@ -33,4 +36,3 @@ enum BehaviorType {
 
 func is_elite() -> bool:
     return behavior == BehaviorType.ELITE or behavior == BehaviorType.BOSS
-

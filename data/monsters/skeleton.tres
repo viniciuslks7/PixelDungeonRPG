@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MonsterData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/monster_data.gd" id="1_monster"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemies/spr_enemy_skeleton_idle.png" id="2_idle_sprite"]
+
+[resource]
+script = ExtResource("1_monster")
+id = &"skeleton"
+display_name = &"Esqueleto"
+description = "Um guerreiro morto-vivo resistente e perigoso."
+idle_sprite = ExtResource("2_idle_sprite")
+level = 1
+max_health = 12
+attack = 3
+defense = 1
+speed = 2
+melee_range = 1
+behavior = 1
+can_open_doors = true
+tags = []
+xp_reward = 10
+loot_table_id = &""
