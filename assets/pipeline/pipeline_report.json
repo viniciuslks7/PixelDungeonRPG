@@ -1,0 +1,39 @@
+{
+    "comfy_batch": {
+        "successful": [],
+        "failed": [
+            {
+                "name": "spr_enemy_slime_idle",
+                "seed": 1000,
+                "error": "{\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"4\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"ckpt_name: 'v1-5-pruned-emaonly.safetensors' not in []\", \"extra_info\": {\"input_name\": \"ckpt_name\", \"input_config\": [[], {\"tooltip\": \"The name of the checkpoint (model) to load.\"}], \"received_value\": \"v1-5-pruned-emaonly.safetensors\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"CheckpointLoaderSimple\"}}}"
+            },
+            {
+                "name": "spr_enemy_skeleton_idle",
+                "seed": 1001,
+                "error": "{\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"4\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"ckpt_name: 'v1-5-pruned-emaonly.safetensors' not in []\", \"extra_info\": {\"input_name\": \"ckpt_name\", \"input_config\": [[], {\"tooltip\": \"The name of the checkpoint (model) to load.\"}], \"received_value\": \"v1-5-pruned-emaonly.safetensors\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"CheckpointLoaderSimple\"}}}"
+            },
+            {
+                "name": "spr_enemy_bat_idle",
+                "seed": 1002,
+                "error": "{\"error\": {\"type\": \"prompt_outputs_failed_validation\", \"message\": \"Prompt outputs failed validation\", \"details\": \"\", \"extra_info\": {}}, \"node_errors\": {\"4\": {\"errors\": [{\"type\": \"value_not_in_list\", \"message\": \"Value not in list\", \"details\": \"ckpt_name: 'v1-5-pruned-emaonly.safetensors' not in []\", \"extra_info\": {\"input_name\": \"ckpt_name\", \"input_config\": [[], {\"tooltip\": \"The name of the checkpoint (model) to load.\"}], \"received_value\": \"v1-5-pruned-emaonly.safetensors\"}}], \"dependent_outputs\": [\"9\"], \"class_type\": \"CheckpointLoaderSimple\"}}}"
+            }
+        ]
+    },
+    "spritesheets": {
+        "archer": {
+            "frames": 15,
+            "size": "68x68",
+            "output": "../characters/players\\spr_archer_sheet.png"
+        },
+        "mage": {
+            "frames": 14,
+            "size": "68x68",
+            "output": "../characters/players\\spr_mage_sheet.png"
+        },
+        "warrior_humano": {
+            "frames": 14,
+            "size": "68x68",
+            "output": "../characters/players\\spr_warrior_humano_sheet.png"
+        }
+    }
+}
