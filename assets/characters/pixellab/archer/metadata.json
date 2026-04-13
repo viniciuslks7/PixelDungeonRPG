@@ -1,0 +1,111 @@
+{
+  "character": {
+    "id": "a2023f19-3763-47ea-8c36-12c49739fcb1",
+    "name": "Arqueiro",
+    "prompt": "nimble archer with longbow, green leather armor and hood, agile fantasy ranger",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-12T01:54:48.073591+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "animating-d12c30c1": {
+        "east": [
+          "animations/animating-d12c30c1/east/frame_000.png",
+          "animations/animating-d12c30c1/east/frame_001.png",
+          "animations/animating-d12c30c1/east/frame_002.png",
+          "animations/animating-d12c30c1/east/frame_003.png",
+          "animations/animating-d12c30c1/east/frame_004.png",
+          "animations/animating-d12c30c1/east/frame_005.png",
+          "animations/animating-d12c30c1/east/frame_006.png"
+        ],
+        "west": [
+          "animations/animating-d12c30c1/west/frame_000.png",
+          "animations/animating-d12c30c1/west/frame_001.png",
+          "animations/animating-d12c30c1/west/frame_002.png",
+          "animations/animating-d12c30c1/west/frame_003.png",
+          "animations/animating-d12c30c1/west/frame_004.png",
+          "animations/animating-d12c30c1/west/frame_005.png",
+          "animations/animating-d12c30c1/west/frame_006.png"
+        ],
+        "south": [
+          "animations/animating-d12c30c1/south/frame_000.png",
+          "animations/animating-d12c30c1/south/frame_001.png",
+          "animations/animating-d12c30c1/south/frame_002.png",
+          "animations/animating-d12c30c1/south/frame_003.png",
+          "animations/animating-d12c30c1/south/frame_004.png",
+          "animations/animating-d12c30c1/south/frame_005.png",
+          "animations/animating-d12c30c1/south/frame_006.png"
+        ],
+        "north": [
+          "animations/animating-d12c30c1/north/frame_000.png",
+          "animations/animating-d12c30c1/north/frame_001.png",
+          "animations/animating-d12c30c1/north/frame_002.png",
+          "animations/animating-d12c30c1/north/frame_003.png",
+          "animations/animating-d12c30c1/north/frame_004.png",
+          "animations/animating-d12c30c1/north/frame_005.png",
+          "animations/animating-d12c30c1/north/frame_006.png"
+        ]
+      },
+      "animating-05d021a3": {
+        "south": [
+          "animations/animating-05d021a3/south/frame_000.png",
+          "animations/animating-05d021a3/south/frame_001.png",
+          "animations/animating-05d021a3/south/frame_002.png",
+          "animations/animating-05d021a3/south/frame_003.png",
+          "animations/animating-05d021a3/south/frame_004.png",
+          "animations/animating-05d021a3/south/frame_005.png",
+          "animations/animating-05d021a3/south/frame_006.png",
+          "animations/animating-05d021a3/south/frame_007.png"
+        ],
+        "east": [
+          "animations/animating-05d021a3/east/frame_000.png",
+          "animations/animating-05d021a3/east/frame_001.png",
+          "animations/animating-05d021a3/east/frame_002.png",
+          "animations/animating-05d021a3/east/frame_003.png",
+          "animations/animating-05d021a3/east/frame_004.png",
+          "animations/animating-05d021a3/east/frame_005.png",
+          "animations/animating-05d021a3/east/frame_006.png",
+          "animations/animating-05d021a3/east/frame_007.png"
+        ],
+        "west": [
+          "animations/animating-05d021a3/west/frame_000.png",
+          "animations/animating-05d021a3/west/frame_001.png",
+          "animations/animating-05d021a3/west/frame_002.png",
+          "animations/animating-05d021a3/west/frame_003.png",
+          "animations/animating-05d021a3/west/frame_004.png",
+          "animations/animating-05d021a3/west/frame_005.png",
+          "animations/animating-05d021a3/west/frame_006.png",
+          "animations/animating-05d021a3/west/frame_007.png"
+        ],
+        "north": [
+          "animations/animating-05d021a3/north/frame_000.png",
+          "animations/animating-05d021a3/north/frame_001.png",
+          "animations/animating-05d021a3/north/frame_002.png",
+          "animations/animating-05d021a3/north/frame_003.png",
+          "animations/animating-05d021a3/north/frame_004.png",
+          "animations/animating-05d021a3/north/frame_005.png",
+          "animations/animating-05d021a3/north/frame_006.png",
+          "animations/animating-05d021a3/north/frame_007.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-12T02:13:12.187805"
+}

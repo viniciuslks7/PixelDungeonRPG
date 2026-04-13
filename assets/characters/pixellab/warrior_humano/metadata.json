@@ -1,0 +1,107 @@
+{
+  "character": {
+    "id": "6b50ee79-25d1-47c5-951c-dffcde5f14fb",
+    "name": "Guerreiro Humano",
+    "prompt": "human fantasy warrior, muscular but realistic proportions, steel armor and red cloth, sword and shield, less robotic, expressive human face",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-12T01:56:32.903275+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "animating-c39c88d4": {
+        "south": [
+          "animations/animating-c39c88d4/south/frame_000.png",
+          "animations/animating-c39c88d4/south/frame_001.png",
+          "animations/animating-c39c88d4/south/frame_002.png",
+          "animations/animating-c39c88d4/south/frame_003.png",
+          "animations/animating-c39c88d4/south/frame_004.png",
+          "animations/animating-c39c88d4/south/frame_005.png",
+          "animations/animating-c39c88d4/south/frame_006.png",
+          "animations/animating-c39c88d4/south/frame_007.png"
+        ],
+        "north": [
+          "animations/animating-c39c88d4/north/frame_000.png",
+          "animations/animating-c39c88d4/north/frame_001.png",
+          "animations/animating-c39c88d4/north/frame_002.png",
+          "animations/animating-c39c88d4/north/frame_003.png",
+          "animations/animating-c39c88d4/north/frame_004.png",
+          "animations/animating-c39c88d4/north/frame_005.png",
+          "animations/animating-c39c88d4/north/frame_006.png",
+          "animations/animating-c39c88d4/north/frame_007.png"
+        ],
+        "east": [
+          "animations/animating-c39c88d4/east/frame_000.png",
+          "animations/animating-c39c88d4/east/frame_001.png",
+          "animations/animating-c39c88d4/east/frame_002.png",
+          "animations/animating-c39c88d4/east/frame_003.png",
+          "animations/animating-c39c88d4/east/frame_004.png",
+          "animations/animating-c39c88d4/east/frame_005.png",
+          "animations/animating-c39c88d4/east/frame_006.png",
+          "animations/animating-c39c88d4/east/frame_007.png"
+        ],
+        "west": [
+          "animations/animating-c39c88d4/west/frame_000.png",
+          "animations/animating-c39c88d4/west/frame_001.png",
+          "animations/animating-c39c88d4/west/frame_002.png",
+          "animations/animating-c39c88d4/west/frame_003.png",
+          "animations/animating-c39c88d4/west/frame_004.png",
+          "animations/animating-c39c88d4/west/frame_005.png",
+          "animations/animating-c39c88d4/west/frame_006.png",
+          "animations/animating-c39c88d4/west/frame_007.png"
+        ]
+      },
+      "cross_punch_attack-19d2ab99": {
+        "east": [
+          "animations/cross_punch_attack-19d2ab99/east/frame_000.png",
+          "animations/cross_punch_attack-19d2ab99/east/frame_001.png",
+          "animations/cross_punch_attack-19d2ab99/east/frame_002.png",
+          "animations/cross_punch_attack-19d2ab99/east/frame_003.png",
+          "animations/cross_punch_attack-19d2ab99/east/frame_004.png",
+          "animations/cross_punch_attack-19d2ab99/east/frame_005.png"
+        ],
+        "west": [
+          "animations/cross_punch_attack-19d2ab99/west/frame_000.png",
+          "animations/cross_punch_attack-19d2ab99/west/frame_001.png",
+          "animations/cross_punch_attack-19d2ab99/west/frame_002.png",
+          "animations/cross_punch_attack-19d2ab99/west/frame_003.png",
+          "animations/cross_punch_attack-19d2ab99/west/frame_004.png",
+          "animations/cross_punch_attack-19d2ab99/west/frame_005.png"
+        ],
+        "south": [
+          "animations/cross_punch_attack-19d2ab99/south/frame_000.png",
+          "animations/cross_punch_attack-19d2ab99/south/frame_001.png",
+          "animations/cross_punch_attack-19d2ab99/south/frame_002.png",
+          "animations/cross_punch_attack-19d2ab99/south/frame_003.png",
+          "animations/cross_punch_attack-19d2ab99/south/frame_004.png",
+          "animations/cross_punch_attack-19d2ab99/south/frame_005.png"
+        ],
+        "north": [
+          "animations/cross_punch_attack-19d2ab99/north/frame_000.png",
+          "animations/cross_punch_attack-19d2ab99/north/frame_001.png",
+          "animations/cross_punch_attack-19d2ab99/north/frame_002.png",
+          "animations/cross_punch_attack-19d2ab99/north/frame_003.png",
+          "animations/cross_punch_attack-19d2ab99/north/frame_004.png",
+          "animations/cross_punch_attack-19d2ab99/north/frame_005.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-12T02:12:40.506464"
+}
