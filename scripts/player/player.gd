@@ -58,6 +58,10 @@ const DEFAULT_ATTRIBUTE_VALUE: int = 20
 @export var display_name: StringName = &"Player"
 @export var attack_power: int = 4
 @export var defense_power: int = 1
+var total_critical_chance: float = 0.0
+var total_critical_damage: float = 0.0
+var total_lifesteal_percent: float = 0.0
+
 var power_general: int = 0
 var core_attributes: Dictionary = {}
 var active_skills: Array[SkillData] = []
@@ -193,25 +197,36 @@ func try_move_direction(direction: Vector2i, is_cell_blocked: Callable) -> bool:
 func is_alive() -> bool:
     return health.current_health > 0
 
-func take_damage(amount: int) -> int:
+func take_damage(amount: int, is_critical: bool = false) -> int:
     var mitigated_amount: int = maxi(1, amount - defense_power)
     var applied_damage: int = health.take_damage(mitigated_amount)
     if applied_damage > 0:
         _play_hit_animation()
-        EventBus.actor_damaged.emit(display_name, applied_damage, health.current_health, health.max_health)
+        EventBus.actor_damaged.emit(display_name, applied_damage, health.current_health, health.max_health, is_critical)
     return applied_damage
 
 func try_attack(target: Node) -> bool:
     if target == null or not target.has_method("take_damage"):
         return false
 
-    var applied_damage: int = target.take_damage(attack_power)
+    var is_critical: bool = false
+    var raw_damage: int = attack_power
+    if total_critical_chance > 0.0 and randf() < total_critical_chance:
+        is_critical = true
+        raw_damage = int(round(raw_damage * (1.5 + total_critical_damage)))
+
+    var applied_damage: int = target.take_damage(raw_damage, is_critical)
     if applied_damage <= 0:
         return false
 
+    if total_lifesteal_percent > 0.0:
+        var heal_amount: int = int(round(applied_damage * total_lifesteal_percent))
+        if heal_amount > 0:
+            health.heal(heal_amount)
+
     _play_attack_animation()
     var target_name: String = target.display_name if "display_name" in target else target.name
-    EventBus.actor_attacked.emit(display_name, target_name, applied_damage)
+    EventBus.actor_attacked.emit(display_name, target_name, applied_damage, is_critical)
     EventBus.action_resolved.emit(display_name, &"attack")
     action_animation_finished.emit()
     return true
@@ -289,13 +304,23 @@ func try_use_active_skill_slot(slot_index: int, target: Node = null) -> bool:
         if target == null or not target.has_method("take_damage"):
             return false
 
+        var is_critical: bool = false
         var raw_damage: int = int(round(attack_power * skill_data.power_multiplier)) + skill_data.flat_damage_bonus
-        var applied_damage: int = target.take_damage(maxi(raw_damage, 1))
+        if total_critical_chance > 0.0 and randf() < total_critical_chance:
+            is_critical = true
+            raw_damage = int(round(raw_damage * (1.5 + total_critical_damage)))
+
+        var applied_damage: int = target.take_damage(maxi(raw_damage, 1), is_critical)
         if applied_damage <= 0:
             return false
 
+        if total_lifesteal_percent > 0.0:
+            var heal_amount: int = int(round(applied_damage * total_lifesteal_percent))
+            if heal_amount > 0:
+                health.heal(heal_amount)
+
         var target_name: String = target.display_name if "display_name" in target else target.name
-        EventBus.actor_attacked.emit(display_name, target_name, applied_damage)
+        EventBus.actor_attacked.emit(display_name, target_name, applied_damage, is_critical)
 
     _skill_cooldowns[skill_data.id] = maxi(skill_data.cooldown_turns, 0)
     _play_skill_animation()
@@ -362,11 +387,19 @@ func _recalculate_combat_stats() -> void:
     var mount_health_bonus: int = 0
     var mount_speed_bonus: int = 0
 
+    var lifesteal_bonus: float = 0.0
+    var crit_chance_bonus: float = 0.0
+    var crit_damage_bonus: float = 0.0
+
     for item_data in equipment.get_equipped_items():
         if item_data == null:
             continue
         total_attack_bonus += item_data.attack_bonus
         total_defense_bonus += item_data.defense_bonus
+        if "critical_chance" in item_data:
+            crit_chance_bonus += float(item_data.get("critical_chance"))
+            crit_damage_bonus += float(item_data.get("critical_damage"))
+            lifesteal_bonus += float(item_data.get("lifesteal_percent"))
 
     for skill_data in passive_skills:
         if skill_data == null:
@@ -394,6 +427,10 @@ func _recalculate_combat_stats() -> void:
 
     attack_power = _base_attack_power + total_attack_bonus + passive_attack_bonus + pet_attack_bonus + mount_attack_bonus
     defense_power = _base_defense_power + total_defense_bonus + passive_defense_bonus + pet_defense_bonus + mount_defense_bonus
+
+    total_critical_chance = crit_chance_bonus
+    total_critical_damage = crit_damage_bonus
+    total_lifesteal_percent = lifesteal_bonus
 
     if is_instance_valid(health):
         var previous_health: int = health.current_health

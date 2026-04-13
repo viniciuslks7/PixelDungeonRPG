@@ -259,6 +259,10 @@ func _apply_floor_data_to_room() -> void:
         item_spawn_cells.append(path_cells[2])
         _current_room.item_spawn_cells = item_spawn_cells
 
+    var biome_color: Variant = _current_floor_data.get("biome_color")
+    if biome_color is Color:
+        _current_room.biome_color = biome_color
+
 func _spawn_items() -> void:
     var starter_loot: Array[ItemData] = _get_starter_loot_for_selected_class()
     _loot_controller.spawn_items(_world_root, WORLD_ITEM_SCENE, _current_room, starter_loot, _ground_items)
@@ -545,13 +549,16 @@ func _on_player_action_animation_finished() -> void:
 func _on_actor_moved(actor_name: String, from_cell: Vector2i, to_cell: Vector2i) -> void:
     print("%s moveu de %s para %s" % [actor_name, from_cell, to_cell])
 
-func _on_actor_attacked(attacker_name: String, target_name: String, damage: int) -> void:
+func _on_actor_attacked(attacker_name: String, target_name: String, damage: int, is_critical: bool) -> void:
+    if is_critical:
+        print("%s acertou CRITICO em %s causando %d de dano" % [attacker_name, target_name, damage])
+        return
     print("%s atacou %s causando %d de dano" % [attacker_name, target_name, damage])
 
-func _on_actor_damaged(actor_name: String, amount: int, current_health: int, max_health: int) -> void:
+func _on_actor_damaged(actor_name: String, amount: int, current_health: int, max_health: int, is_critical: bool) -> void:
     if _is_player_actor_name(actor_name):
         _apply_player_damage_screen_shake()
-    _spawn_floating_damage_number(actor_name, amount, false)
+    _spawn_floating_damage_number(actor_name, amount, is_critical)
     print("%s recebeu %d de dano (%d/%d)" % [actor_name, amount, current_health, max_health])
 
 func _is_player_actor_name(actor_name: String) -> bool:

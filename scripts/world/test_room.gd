@@ -18,6 +18,7 @@ extends Node2D
     Vector2i(5, 4),
     Vector2i(6, 4),
 ]
+@export var biome_color: Color = Color.WHITE
 
 const FLOOR_TEXTURE_PATH := "res://assets/world/dungeon/tile_floor.svg"
 const WALL_TEXTURE_PATH := "res://assets/world/dungeon/tile_wall.svg"
@@ -55,11 +56,11 @@ func _draw() -> void:
             )
 
             if cell in blocked_cells:
-                _draw_cell_fill(cell_rect, cell, _wall_texture, WALL_FALLBACK_A, WALL_FALLBACK_B)
+                _draw_cell_fill(cell_rect, cell, _wall_texture, WALL_FALLBACK_A * biome_color, WALL_FALLBACK_B * biome_color)
                 draw_rect(cell_rect, BLOCK_OVERLAY_COLOR, true)
                 draw_rect(cell_rect, BLOCK_EDGE_COLOR, false, 2.0)
             else:
-                _draw_cell_fill(cell_rect, cell, _floor_texture, FLOOR_FALLBACK_A, FLOOR_FALLBACK_B)
+                _draw_cell_fill(cell_rect, cell, _floor_texture, FLOOR_FALLBACK_A * biome_color, FLOOR_FALLBACK_B * biome_color)
 
             if cell in item_spawn_cells:
                 var marker_size := Vector2(cell_size * 0.36, cell_size * 0.36)
@@ -76,7 +77,7 @@ func _draw_cell_fill(
     fallback_b: Color
 ) -> void:
     if texture != null:
-        draw_texture_rect(texture, cell_rect, false)
+        draw_texture_rect(texture, cell_rect, false, biome_color)
         return
 
     var use_first_color: bool = ((cell.x + cell.y) % 2) == 0

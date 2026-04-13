@@ -28,6 +28,8 @@ AudioManager="*res://autoload/audio_manager.gd"
 SceneManager="*res://autoload/scene_manager.gd"
 PowerService="*res://autoload/power_service.gd"
 DungeonService="*res://autoload/dungeon_service.gd"
+ScreenShakeManager="*res://autoload/screen_shake_manager.gd"
+NumberSpawner="*res://autoload/number_spawner.gd"
 
 [display]
 

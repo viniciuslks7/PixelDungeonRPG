@@ -37,6 +37,7 @@ func _build_floor_data() -> void:
             "elite_chance": float(multipliers.get("elite_chance", 0.0)),
             "chest_tier": 1 + stage_block,
             "danger_score": int(multipliers.get("danger_score", 100)),
+            "biome_color": _get_biome_color_for_stage(stage_block),
         }
 
 func _calculate_stage_multipliers(floor_level: int, stage_block: int) -> Dictionary:
@@ -61,6 +62,13 @@ func _calculate_stage_multipliers(floor_level: int, stage_block: int) -> Diction
         "elite_chance": minf(elite_chance, 0.35),
         "danger_score": danger_score,
     }
+
+func _get_biome_color_for_stage(stage_block: int) -> Color:
+    match clampi(stage_block, 0, 3):
+        1: return Color(0.65, 0.85, 1.0, 1.0) # Frost
+        2: return Color(1.0, 0.65, 0.65, 1.0) # Magma
+        3: return Color(0.85, 0.45, 0.95, 1.0) # Void
+        _: return Color.WHITE # Dungeon Default
 
 func _build_path_for_variant(variant: int) -> Array[Vector2i]:
     match variant:

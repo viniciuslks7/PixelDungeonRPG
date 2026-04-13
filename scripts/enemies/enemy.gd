@@ -56,24 +56,24 @@ func is_alive() -> bool:
 func try_move_direction(direction: Vector2i, is_cell_blocked: Callable) -> bool:
     return grid_movement.try_move(direction, is_cell_blocked)
 
-func take_damage(amount: int) -> int:
+func take_damage(amount: int, is_critical: bool = false) -> int:
     var applied_damage: int = health.take_damage(amount)
     if applied_damage > 0:
         _play_hit_animation()
-        EventBus.actor_damaged.emit(display_name, applied_damage, health.current_health, health.max_health)
+        EventBus.actor_damaged.emit(display_name, applied_damage, health.current_health, health.max_health, is_critical)
     return applied_damage
 
 func try_attack(target: Node) -> bool:
     if target == null or not target.has_method("take_damage"):
         return false
 
-    var applied_damage: int = target.take_damage(attack_power)
+    var applied_damage: int = target.take_damage(attack_power, false)
     if applied_damage <= 0:
         return false
 
     _play_attack_animation()
     var target_name: String = target.display_name if "display_name" in target else target.name
-    EventBus.actor_attacked.emit(display_name, target_name, applied_damage)
+    EventBus.actor_attacked.emit(display_name, target_name, applied_damage, false)
     EventBus.action_resolved.emit(display_name, &"attack")
     action_animation_finished.emit()
     return true

@@ -73,12 +73,12 @@ func _on_player_spawned(player: Node2D) -> void:
         if not display_name.is_empty():
             _player_actor_names[display_name] = true
 
-func _on_actor_attacked(_attacker_name: String, _target_name: String, damage: int) -> void:
+func _on_actor_attacked(_attacker_name: String, _target_name: String, damage: int, _is_critical: bool) -> void:
     if damage <= 0:
         return
     _play_sfx(SFX_ATTACK_HIT)
 
-func _on_actor_damaged(actor_name: String, amount: int, _current_health: int, _max_health: int) -> void:
+func _on_actor_damaged(actor_name: String, amount: int, _current_health: int, _max_health: int, _is_critical: bool) -> void:
     if amount <= 0:
         return
     if _is_player_actor_name(actor_name):
